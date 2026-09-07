@@ -794,7 +794,7 @@
 
 <script>
 /* ---------------- SUPABASE ---------------- */
-const SUPABASE_URL = 'https://uecsagtqdlsljcszftsk.supabase.co';
+const SUPABASE_URL = 'https://uecsagtqdlsljcszftsk.supabaseClient.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_WMPaSxaN1ruhqzdl7Zb3rQ_OIMGg9mc';
 
 if (!window.supabase || typeof window.supabase.createClient !== 'function') {
@@ -815,7 +815,7 @@ if (!window.supabase || typeof window.supabase.createClient !== 'function') {
   throw new Error('Supabase JS não carregou (window.supabase indefinido).');
 }
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let DB = {
   clientes: {},      // id (uuid) -> {id, nome, fone, veiculos:[{placa,modelo,ano,ultimaTrocaOleo}], indicado_por}
@@ -829,7 +829,7 @@ let SESSION = { role:null, userId:null, fone:null, nome:null };
 
 /* ---------------- BUSCA DE DADOS ---------------- */
 async function fetchClientes(){
-  const { data, error } = await supabase.from('clientes').select('*');
+  const { data, error } = await supabaseClient.from('clientes').select('*');
   if(error){ console.error('clientes:', error.message); return; }
   const novo = {};
   (data||[]).forEach(c=> novo[c.id] = c);
@@ -838,26 +838,26 @@ async function fetchClientes(){
   rerenderVisivel();
 }
 async function fetchAgendamentos(){
-  const { data, error } = await supabase.from('agendamentos').select('*').order('criado_em', { ascending:false });
+  const { data, error } = await supabaseClient.from('agendamentos').select('*').order('criado_em', { ascending:false });
   if(error){ console.error('agendamentos:', error.message); return; }
   DB.agendamentos = data||[];
   rerenderVisivel();
 }
 async function fetchOrcamentos(){
-  const { data, error } = await supabase.from('orcamentos').select('*').order('criado_em', { ascending:false });
+  const { data, error } = await supabaseClient.from('orcamentos').select('*').order('criado_em', { ascending:false });
   if(error){ console.error('orcamentos:', error.message); return; }
   DB.orcamentos = data||[];
   rerenderVisivel();
 }
 async function fetchGaleria(){
-  const { data, error } = await supabase.from('galeria').select('*').order('criado_em', { ascending:false });
+  const { data, error } = await supabaseClient.from('galeria').select('*').order('criado_em', { ascending:false });
   if(error){ console.error('galeria:', error.message); return; }
   DB.galeria = data||[];
   renderGaleriaHome();
   rerenderVisivel();
 }
 async function fetchAvaliacoes(){
-  const { data, error } = await supabase.from('avaliacoes').select('*').order('criado_em', { ascending:false });
+  const { data, error } = await supabaseClient.from('avaliacoes').select('*').order('criado_em', { ascending:false });
   if(error){ console.error('avaliacoes:', error.message); return; }
   DB.avaliacoes = data||[];
   renderHomeStats();
@@ -865,7 +865,7 @@ async function fetchAvaliacoes(){
   rerenderVisivel();
 }
 async function fetchCupons(){
-  const { data, error } = await supabase.from('cupons').select('*').order('criado_em', { ascending:false });
+  const { data, error } = await supabaseClient.from('cupons').select('*').order('criado_em', { ascending:false });
   if(error){ console.error('cupons:', error.message); return; }
   DB.cupons = data||[];
   rerenderVisivel();
@@ -876,18 +876,18 @@ async function fetchTudo(){
 
 /* ---------------- TEMPO REAL (avisa quando algo muda em qualquer aparelho) ---------------- */
 function subscribeRealtime(){
-  supabase.channel('rt-clientes').on('postgres_changes', {event:'*', schema:'public', table:'clientes'}, fetchClientes).subscribe();
-  supabase.channel('rt-agendamentos').on('postgres_changes', {event:'*', schema:'public', table:'agendamentos'}, fetchAgendamentos).subscribe();
-  supabase.channel('rt-orcamentos').on('postgres_changes', {event:'*', schema:'public', table:'orcamentos'}, fetchOrcamentos).subscribe();
-  supabase.channel('rt-galeria').on('postgres_changes', {event:'*', schema:'public', table:'galeria'}, fetchGaleria).subscribe();
-  supabase.channel('rt-avaliacoes').on('postgres_changes', {event:'*', schema:'public', table:'avaliacoes'}, fetchAvaliacoes).subscribe();
-  supabase.channel('rt-cupons').on('postgres_changes', {event:'*', schema:'public', table:'cupons'}, fetchCupons).subscribe();
+  supabaseClient.channel('rt-clientes').on('postgres_changes', {event:'*', schema:'public', table:'clientes'}, fetchClientes).subscribe();
+  supabaseClient.channel('rt-agendamentos').on('postgres_changes', {event:'*', schema:'public', table:'agendamentos'}, fetchAgendamentos).subscribe();
+  supabaseClient.channel('rt-orcamentos').on('postgres_changes', {event:'*', schema:'public', table:'orcamentos'}, fetchOrcamentos).subscribe();
+  supabaseClient.channel('rt-galeria').on('postgres_changes', {event:'*', schema:'public', table:'galeria'}, fetchGaleria).subscribe();
+  supabaseClient.channel('rt-avaliacoes').on('postgres_changes', {event:'*', schema:'public', table:'avaliacoes'}, fetchAvaliacoes).subscribe();
+  supabaseClient.channel('rt-cupons').on('postgres_changes', {event:'*', schema:'public', table:'cupons'}, fetchCupons).subscribe();
 }
 
 async function renderHomeStats(){
   const el = document.getElementById('home-stats');
   if(!el) return;
-  const { data: stats } = await supabase.rpc('get_public_stats');
+  const { data: stats } = await supabaseClient.rpc('get_public_stats');
   const avals = DB.avaliacoes || [];
   const media = avals.length ? (avals.reduce((a,v)=>a+v.nota,0)/avals.length) : 0;
   el.innerHTML = `
@@ -1023,7 +1023,7 @@ async function clienteCriarConta(){
   if(!senha || senha.length < 6){ toast('A senha precisa ter pelo menos 6 caracteres'); return; }
 
   const email = foneParaEmail(fone);
-  const { data, error } = await supabase.auth.signUp({ email, password: senha });
+  const { data, error } = await supabaseClient.auth.signUp({ email, password: senha });
   if(error){
     if(/registered|exists/i.test(error.message||'')){
       toast('Esse WhatsApp já tem cadastro. Toque em "Já tenho conta".');
@@ -1036,11 +1036,11 @@ async function clienteCriarConta(){
 
   let indicadoPor = null;
   if(codigoDigitado){
-    const { data: idIndicador } = await supabase.rpc('resolver_indicacao', { codigo: codigoDigitado });
+    const { data: idIndicador } = await supabaseClient.rpc('resolver_indicacao', { codigo: codigoDigitado });
     indicadoPor = idIndicador || null;
   }
 
-  const { error: errCliente } = await supabase.from('clientes').insert({
+  const { error: errCliente } = await supabaseClient.from('clientes').insert({
     id: userId, nome, fone, veiculos: [], indicado_por: indicadoPor
   });
   if(errCliente){ toast('Conta criada, mas houve um erro ao salvar seu perfil: ' + errCliente.message); return; }
@@ -1053,10 +1053,10 @@ async function clienteEntrarConta(){
   const senha = document.getElementById('cli-senha').value;
   if(!fone || !senha){ toast('Preencha WhatsApp e senha'); return; }
   const email = foneParaEmail(fone);
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
   if(error){ toast('WhatsApp ou senha incorretos'); return; }
   const userId = data.user.id;
-  const { data: clienteRow } = await supabase.from('clientes').select('*').eq('id', userId).single();
+  const { data: clienteRow } = await supabaseClient.from('clientes').select('*').eq('id', userId).single();
   await entrarComoClienteLogado(userId, clienteRow ? clienteRow.nome : '', fone);
 }
 
@@ -1078,7 +1078,7 @@ async function entrarComoClienteLogado(userId, nome, fone){
 }
 
 function clienteSair(){
-  supabase.auth.signOut();
+  supabaseClient.auth.signOut();
   SESSION = { role:null, userId:null, fone:null, nome:null };
   go('home');
 }
@@ -1088,7 +1088,7 @@ function renderClienteIndicar(){
   if(!codigoEl) return;
   const meuCodigo = gerarCodigoIndicacao(SESSION.fone);
   codigoEl.textContent = meuCodigo;
-  supabase.rpc('contar_indicados', { indicador_id: SESSION.userId }).then(({data})=>{
+  supabaseClient.rpc('contar_indicados', { indicador_id: SESSION.userId }).then(({data})=>{
     document.getElementById('cli-total-indicados').textContent = data || 0;
   });
   const linkApp = window.location.origin + window.location.pathname + '#cliente';
@@ -1207,7 +1207,7 @@ async function agSalvarVeiculoAtual(){
   const novos = existente
     ? veiculos.map(v=> v.placa===agData.placa ? {...v, modelo:agData.modelo, ano:agData.ano} : v)
     : [...veiculos, {placa:agData.placa, modelo:agData.modelo, ano:agData.ano}];
-  await supabase.from('clientes').update({ veiculos: novos }).eq('id', SESSION.userId);
+  await supabaseClient.from('clientes').update({ veiculos: novos }).eq('id', SESSION.userId);
 }
 function agPedirDetalhe(servico){
   agData.servicoBase = servico;
@@ -1398,7 +1398,7 @@ async function orSalvarVeiculoAtual(){
   const novos = existente
     ? veiculos.map(v=> v.placa===orData.placa ? {...v, modelo:orData.modelo, ano:orData.ano} : v)
     : [...veiculos, {placa:orData.placa, modelo:orData.modelo, ano:orData.ano}];
-  await supabase.from('clientes').update({ veiculos: novos }).eq('id', SESSION.userId);
+  await supabaseClient.from('clientes').update({ veiculos: novos }).eq('id', SESSION.userId);
 }
 function orPedirDetalhe(servico){
   orData.servicoBase = servico;
@@ -1432,7 +1432,7 @@ async function addVeiculo(){
   const ano = document.getElementById('v-ano').value.trim();
   if(!placa || !modelo){ toast('Preencha placa e modelo'); return; }
   const novosVeiculos = [...(DB.clientes[SESSION.userId].veiculos||[]), {placa, modelo, ano}];
-  const { error } = await supabase.from('clientes').update({ veiculos: novosVeiculos }).eq('id', SESSION.userId);
+  const { error } = await supabaseClient.from('clientes').update({ veiculos: novosVeiculos }).eq('id', SESSION.userId);
   if(error){ toast('Erro ao salvar veículo: '+error.message); return; }
   document.getElementById('v-placa').value='';
   document.getElementById('v-modelo').value='';
@@ -1459,7 +1459,7 @@ async function registrarTrocaOleoHoje(placa){
   const hoje = new Date();
   const hojeISO = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
   const novosVeiculos = c.veiculos.map(v => v.placa===placa ? {...v, ultimaTrocaOleo: hojeISO} : v);
-  await supabase.from('clientes').update({ veiculos: novosVeiculos }).eq('id', SESSION.userId);
+  await supabaseClient.from('clientes').update({ veiculos: novosVeiculos }).eq('id', SESSION.userId);
   toast('Troca de óleo registrada!');
 }
 function renderAlertaOleo(){
@@ -1509,7 +1509,7 @@ async function criarAgendamento(){
   const obs = document.getElementById('ag-obs').value;
   if(!veiculo){ toast('Cadastre um veículo primeiro'); return; }
   if(!data || !hora){ toast('Escolha data e horário'); return; }
-  const { error } = await supabase.from('agendamentos').insert({
+  const { error } = await supabaseClient.from('agendamentos').insert({
     cliente_id: SESSION.userId, fone:SESSION.fone, veiculo, servico, tamanho, data, hora, obs, status:'Recebido'
   });
   if(error){ toast('Erro ao agendar: '+error.message); return; }
@@ -1523,7 +1523,7 @@ async function criarOrcamento(){
   if(!veiculo){ toast('Preencha os dados do veículo primeiro'); return; }
   if(!orData.servico){ toast('Escolha o serviço'); return; }
   const descricao = orData.servico + (detalheExtra ? ' — ' + detalheExtra : '');
-  const { error } = await supabase.from('orcamentos').insert({
+  const { error } = await supabaseClient.from('orcamentos').insert({
     cliente_id: SESSION.userId, fone:SESSION.fone, veiculo, descricao, valor:null, status:'Pendente'
   });
   if(error){ toast('Erro ao enviar: '+error.message); return; }
@@ -1601,7 +1601,7 @@ async function enviarAvaliacao(agendamentoId, veiculo, servico){
   const nota = Number(el.dataset.nota);
   if(!nota){ toast('Toque nas estrelas para dar uma nota'); return; }
   const comentario = document.getElementById('coment-'+agendamentoId).value.trim();
-  const { error } = await supabase.from('avaliacoes').insert({
+  const { error } = await supabaseClient.from('avaliacoes').insert({
     agendamento_id: agendamentoId, cliente_id: SESSION.userId, fone:SESSION.fone,
     veiculo, servico, nota, comentario, nome_cliente: (SESSION.nome||'').split(' ')[0]
   });
@@ -1611,9 +1611,9 @@ async function enviarAvaliacao(agendamentoId, veiculo, servico){
 
 /* ---------------- EQUIPE ---------------- */
 async function goEquipeEntry(){
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if(session){
-    const { data: perfil } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+    const { data: perfil } = await supabaseClient.from('profiles').select('role').eq('id', session.user.id).single();
     if(perfil && perfil.role==='equipe'){
       await entrarComoEquipeLogada(session.user);
       return;
@@ -1632,18 +1632,18 @@ async function equipeEntrar(){
   const email = document.getElementById('eq-email').value.trim();
   const senha = document.getElementById('eq-senha').value;
   if(!email || !senha){ toast('Preencha e-mail e senha'); return; }
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
   if(error){ toast('E-mail ou senha incorretos'); return; }
-  const { data: perfil } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+  const { data: perfil } = await supabaseClient.from('profiles').select('role').eq('id', data.user.id).single();
   if(!perfil || perfil.role !== 'equipe'){
     toast('Essa conta não tem acesso de equipe.');
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     return;
   }
   await entrarComoEquipeLogada(data.user);
 }
 function equipeSair(){
-  supabase.auth.signOut();
+  supabaseClient.auth.signOut();
   SESSION = { role:null, userId:null, fone:null, nome:null };
   go('home');
 }
@@ -1691,7 +1691,7 @@ function renderEqAgenda(){
   }).join('');
 }
 async function atualizarStatusAgendamento(id, status){
-  const { error } = await supabase.from('agendamentos').update({ status }).eq('id', id);
+  const { error } = await supabaseClient.from('agendamentos').update({ status }).eq('id', id);
   if(error){ toast('Erro ao atualizar: '+error.message); return; }
   toast('Status atualizado — cliente notificado');
 
@@ -1701,7 +1701,7 @@ async function atualizarStatusAgendamento(id, status){
       const c = DB.clientes[ag.cliente_id];
       if(c){
         const novosVeiculos = c.veiculos.map(v => v.placa===ag.veiculo ? {...v, ultimaTrocaOleo: ag.data} : v);
-        await supabase.from('clientes').update({ veiculos: novosVeiculos }).eq('id', ag.cliente_id);
+        await supabaseClient.from('clientes').update({ veiculos: novosVeiculos }).eq('id', ag.cliente_id);
       }
     }
   }
@@ -1729,7 +1729,7 @@ function renderEqOrcamentos(){
 async function enviarOrcamento(id){
   const val = document.getElementById('val-'+id).value;
   if(!val){ toast('Informe um valor'); return; }
-  const { error } = await supabase.from('orcamentos').update({ valor: val, status: 'Enviado' }).eq('id', id);
+  const { error } = await supabaseClient.from('orcamentos').update({ valor: val, status: 'Enviado' }).eq('id', id);
   if(error){ toast('Erro: '+error.message); return; }
   toast('Orçamento enviado ao cliente');
 }
@@ -1822,14 +1822,14 @@ async function salvarEdicaoCliente(id){
     const placa = inputs[2].value.trim().toUpperCase();
     if(modelo && placa){ veiculos.push({modelo, ano, placa}); }
   });
-  const { error } = await supabase.from('clientes').update({ nome, veiculos }).eq('id', id);
+  const { error } = await supabaseClient.from('clientes').update({ nome, veiculos }).eq('id', id);
   if(error){ toast('Erro ao salvar: '+error.message); return; }
   toast('Cliente atualizado');
 }
 
 async function excluirCliente(id, nome){
   if(!confirm('Excluir o cliente '+nome+'? Isso apaga o perfil, agendamentos, orçamentos e avaliações dele. Não pode ser desfeito.')) return;
-  const { error } = await supabase.from('clientes').delete().eq('id', id);
+  const { error } = await supabaseClient.from('clientes').delete().eq('id', id);
   if(error){ toast('Erro ao excluir: '+error.message); return; }
   toast('Cliente excluído. Para remover o login dele, apague também em Authentication > Users no Supabase.');
 }
@@ -1841,14 +1841,14 @@ async function gerarCupom(clienteId){
   let tentativas = 0;
   while(tentativas < 3){
     const codigo = 'ZAGO' + Math.floor(1000 + Math.random()*9000);
-    const { error } = await supabase.from('cupons').insert({ cliente_id: clienteId, codigo, percentual });
+    const { error } = await supabaseClient.from('cupons').insert({ cliente_id: clienteId, codigo, percentual });
     if(!error){ toast('Cupom gerado: '+codigo); input.value=''; return; }
     tentativas++;
   }
   toast('Erro ao gerar cupom, tente novamente');
 }
 async function marcarCupomUsado(id){
-  await supabase.from('cupons').update({ usado:true }).eq('id', id);
+  await supabaseClient.from('cupons').update({ usado:true }).eq('id', id);
   toast('Cupom marcado como usado');
 }
 
@@ -1891,7 +1891,7 @@ async function salvarFotoTrabalho(){
   if(!fotoBase64Pendente){ toast('Escolha uma foto primeiro'); return; }
   const btn = document.getElementById('foto-salvar-btn');
   btn.textContent = 'Enviando...'; btn.disabled = true;
-  const { error } = await supabase.from('galeria').insert({
+  const { error } = await supabaseClient.from('galeria').insert({
     titulo, imagem: fotoBase64Pendente, criado_por: SESSION.userId
   });
   if(error){
@@ -1906,7 +1906,7 @@ async function salvarFotoTrabalho(){
   btn.textContent = 'Adicionar foto'; btn.disabled = false;
 }
 async function removerFotoTrabalho(id){
-  await supabase.from('galeria').delete().eq('id', id);
+  await supabaseClient.from('galeria').delete().eq('id', id);
   toast('Foto removida');
 }
 function renderEqFotos(){
