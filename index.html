@@ -151,6 +151,20 @@
   }
   .tab.active{color:var(--gold);border-color:var(--gold);}
 
+  .chipbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+  .chip{
+    flex:0 0 auto;background:none;border:1px solid var(--line);color:var(--grey);
+    font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;
+  }
+  .chip.active{background:var(--gold);color:#0d0d0d;border-color:var(--gold);}
+
+  .os-sugestao{
+    padding:9px 12px;border:1px solid var(--line);border-top:none;cursor:pointer;font-size:13px;
+  }
+  .os-sugestao:hover{background:rgba(244,196,48,.08);}
+  .os-sugestao:first-child{border-top:1px solid var(--line);border-radius:8px 8px 0 0;}
+  .os-sugestao:last-child{border-radius:0 0 8px 8px;}
+
   .card{
     background:var(--surface);
     border:1px solid var(--line);
@@ -429,14 +443,12 @@
   <!-- ============ SCREEN: HOME ============ -->
   <div id="screen-home" class="screen">
     <h2 class="title">Bem-vindo</h2>
-    <p class="sub">Agende seu serviço ou peça um orçamento em poucos toques.</p>
-
-    <div class="statsbar" id="home-stats"></div>
+    <p class="sub" style="margin-bottom:22px">Agende seu serviço ou peça um orçamento em poucos toques.</p>
 
     <button class="bigbtn" onclick="go('cliente-login')">
       <div class="ic">C</div>
       <div>
-        Sou cliente
+        Faça seu cadastro
         <div class="meta">Agendar, pedir orçamento, ver status</div>
       </div>
     </button>
@@ -463,50 +475,67 @@
 
     <div class="footer-info">
       <strong>Zago Auto Service</strong><br>
-      R. Narciso Baldini, 480 — Jardim Bela Vista<br>
-      Emergência 24h: toque no botão verde de WhatsApp
+      R. Narciso Baldini, 480 — Jardim Bela Vista
     </div>
   </div>
 
   <!-- ============ CLIENTE: LOGIN ============ -->
   <div id="screen-cliente-login" class="screen hide">
     <div class="topnav"><button class="backbtn" onclick="go('home')">‹ Voltar</button></div>
-    <h2 class="title">Entrar como cliente</h2>
+    <h2 class="title">Cadastro</h2>
 
     <div class="tabs" style="padding:0;margin:0 0 14px;">
       <div class="tab active" data-tab="criar" onclick="cliLoginModo('criar')" style="flex:1;text-align:center;">Criar conta</div>
       <div class="tab" data-tab="entrar" onclick="cliLoginModo('entrar')" style="flex:1;text-align:center;">Já tenho conta</div>
     </div>
 
-    <p class="sub" id="cli-login-sub">Crie seu cadastro com WhatsApp e uma senha.</p>
+    <!-- CRIAR CONTA: uma tela por vez -->
+    <div id="cli-cadastro-wizard">
+      <div class="wizprogress"><div class="wizprogress-bar" id="cli-cad-progress-bar" style="width:33.33%"></div></div>
+      <p class="sub" id="cli-cad-step-label">Passo 1 de 3</p>
 
-    <div id="cli-campo-nome">
-      <label>Nome</label>
-      <input id="cli-nome" placeholder="Seu nome completo">
+      <div class="cadstep" data-cadstep="1">
+        <label>Nome completo</label>
+        <input id="cli-nome" placeholder="Seu nome completo">
+        <button class="btn" style="margin-top:14px" onclick="cliCadastroProximo(1)">Próximo</button>
+      </div>
+
+      <div class="cadstep hide" data-cadstep="2">
+        <button class="wizback" onclick="cliCadastroIrParaPasso(1)">‹ Voltar</button>
+        <label>WhatsApp</label>
+        <input id="cli-fone" placeholder="(00) 00000-0000" inputmode="tel" oninput="formatarTelefone(this)">
+        <button class="btn" style="margin-top:14px" onclick="cliCadastroProximo(2)">Próximo</button>
+      </div>
+
+      <div class="cadstep hide" data-cadstep="3">
+        <button class="wizback" onclick="cliCadastroIrParaPasso(2)">‹ Voltar</button>
+        <label>Senha</label>
+        <input id="cli-senha" type="password" placeholder="Mínimo 6 caracteres">
+
+        <div id="cli-campo-privacidade" style="margin-top:14px">
+          <details class="privacy-box">
+            <summary>O que fazemos com seus dados?</summary>
+            <p>Usamos seu nome, WhatsApp e dados do veículo apenas para agendar serviços, enviar orçamentos e manter seu histórico na oficina. Não vendemos nem compartilhamos seus dados com terceiros. Você pode pedir a exclusão deles a qualquer momento, direto pelo app.</p>
+          </details>
+          <label class="check-consent">
+            <input type="checkbox" id="cli-consentimento">
+            <span>Li e aceito o uso dos meus dados conforme descrito acima.</span>
+          </label>
+        </div>
+
+        <button class="btn" style="margin-top:14px" onclick="clienteCriarConta()">Criar conta e entrar</button>
+      </div>
     </div>
-    <label>WhatsApp</label>
-    <input id="cli-fone" placeholder="(00) 00000-0000" inputmode="tel" oninput="formatarTelefone(this)">
-    <label>Senha</label>
-    <input id="cli-senha" type="password" placeholder="Mínimo 6 caracteres">
 
-    <div id="cli-campo-indicacao">
-      <label>Código de indicação (opcional)</label>
-      <input id="cli-indicacao" placeholder="Ex: ZAGO1234">
+    <!-- JÁ TENHO CONTA -->
+    <div id="cli-entrar-form" class="hide">
+      <label>WhatsApp</label>
+      <input id="cli-fone-entrar" placeholder="(00) 00000-0000" inputmode="tel" oninput="formatarTelefone(this)">
+      <label>Senha</label>
+      <input id="cli-senha-entrar" type="password" placeholder="Sua senha">
+      <button class="btn" style="margin-top:14px" onclick="clienteEntrarConta()">Entrar</button>
+      <a class="privacy-link" id="cli-esqueci-senha" href="https://wa.me/5514991433711?text=Ol%C3%A1%2C%20esqueci%20minha%20senha%20do%20app%20da%20Zago%2C%20pode%20me%20ajudar%3F" target="_blank" rel="noopener">Esqueci minha senha</a>
     </div>
-
-    <div id="cli-campo-privacidade">
-      <details class="privacy-box">
-        <summary>O que fazemos com seus dados?</summary>
-        <p>Usamos seu nome, WhatsApp e dados do veículo apenas para agendar serviços, enviar orçamentos e manter seu histórico na oficina. Não vendemos nem compartilhamos seus dados com terceiros. Você pode pedir a exclusão deles a qualquer momento, direto pelo app.</p>
-      </details>
-      <label class="check-consent">
-        <input type="checkbox" id="cli-consentimento">
-        <span>Li e aceito o uso dos meus dados conforme descrito acima.</span>
-      </label>
-    </div>
-
-    <button class="btn" id="cli-login-btn" onclick="clienteCriarConta()">Criar conta e entrar</button>
-    <a class="privacy-link hide" id="cli-esqueci-senha" href="https://wa.me/5514991433711?text=Ol%C3%A1%2C%20esqueci%20minha%20senha%20do%20app%20da%20Zago%2C%20pode%20me%20ajudar%3F" target="_blank" rel="noopener">Esqueci minha senha</a>
   </div>
 
   <!-- ============ CLIENTE: DASHBOARD ============ -->
@@ -537,8 +566,8 @@
           <div class="wizoptions">
             <button class="wizopt" onclick="agEscolherCategoria('Elétrica')">Elétrica</button>
             <button class="wizopt" onclick="agEscolherCategoria('Manutenção mecânica')">Manutenção mecânica</button>
-            <button class="wizopt" onclick="agEscolherCategoria('Revisão/Troca de óleo')">Revisão / Troca de óleo</button>
             <button class="wizopt" onclick="agEscolherCategoria('Som e acessórios')">Som e acessórios</button>
+            <button class="wizopt" onclick="agEscolherCategoria('Revisão preventiva')">Revisão preventiva</button>
           </div>
         </div>
 
@@ -570,16 +599,17 @@
         <div class="wizstep hide" data-step="5">
           <button class="wizback" onclick="agVoltar(4)">‹ Voltar</button>
           <h3 class="wizq">Qual serviço?</h3>
-          <div class="wizoptions" id="ag-step5-opcoes">
-            <button class="wizopt" onclick="agEscolherServicoFinal('Revisão')">Revisão</button>
-            <button class="wizopt" onclick="agEscolherServicoFinal('Troca de óleo')">Troca de óleo</button>
-            <button class="wizopt" onclick="agPedirDetalhe('Conserto elétrico')">Conserto elétrico<span class="meta">Definir reparo</span></button>
-            <button class="wizopt" onclick="agPedirDetalhe('Som e acessórios')">Som e acessórios<span class="meta">Definir reparo ou instalação</span></button>
-          </div>
+          <div class="wizoptions" id="ag-step5-opcoes"></div>
           <div class="hide" id="ag-step5-detalhe">
             <label id="ag-detalhe-label">Descreva o que precisa</label>
             <textarea id="ag-detalhe-texto" placeholder="Ex: instalar som novo e alto-falantes traseiros"></textarea>
             <button class="btn secondary" style="margin-top:10px" onclick="agConfirmarDetalhe()">Confirmar e continuar</button>
+          </div>
+          <div style="margin-top:18px">
+            <label>Código de indicação (opcional)</label>
+            <input id="ag-codigo-indicacao" placeholder="Ex: ZAGO1234" style="text-transform:uppercase">
+            <p class="small" style="margin-top:4px;color:var(--gold);font-weight:700">🎁 Quem tem cupom de indicação ganha 12% de desconto na mão de obra!</p>
+            <p class="small" style="margin-top:2px;color:var(--grey)">Tem um código? Informe aqui para solicitar o desconto.</p>
           </div>
         </div>
 
@@ -666,6 +696,11 @@
           <h3 class="wizq">Mais algum detalhe?</h3>
           <p class="sub" style="margin-top:-6px">Opcional — pode deixar em branco.</p>
           <textarea id="or-desc" placeholder="Descreva melhor o problema (opcional)"></textarea>
+          <div style="margin-top:14px">
+            <label>Código de indicação (opcional)</label>
+            <input id="or-codigo-indicacao" placeholder="Ex: ZAGO1234" style="text-transform:uppercase">
+            <p class="small" style="margin-top:4px;color:var(--gold);font-weight:700">🎁 Quem tem cupom de indicação ganha 12% de desconto na mão de obra!</p>
+          </div>
           <div class="wizresumo" id="or-resumo"></div>
           <button class="btn" onclick="criarOrcamento()">Enviar pedido de orçamento</button>
         </div>
@@ -742,21 +777,77 @@
     <div class="tabs">
       <div class="tab active" data-tab="agenda" onclick="eqTab('agenda')">Agenda</div>
       <div class="tab" data-tab="orcamentos" onclick="eqTab('orcamentos')">Orçamentos</div>
+      <div class="tab" data-tab="os" onclick="eqTab('os')">Ordens de Serviço</div>
       <div class="tab" data-tab="clientes" onclick="eqTab('clientes')">Clientes</div>
+      <div class="tab" data-tab="novo-cliente" onclick="eqTab('novo-cliente')">+ Cliente</div>
       <div class="tab" data-tab="qrcode" onclick="eqTab('qrcode')">QR Code</div>
       <div class="tab" data-tab="fotos" onclick="eqTab('fotos')">Fotos</div>
+      <div class="tab" data-tab="atividade" onclick="eqTab('atividade')">Atividade</div>
     </div>
 
     <div class="tabpane" data-pane="agenda">
-      <div id="eq-agenda-list" style="margin-top:16px"></div>
+      <div class="statsbar" id="eq-resumo-stats" style="margin-top:14px"></div>
+      <div class="chipbar" id="eq-status-filtro">
+        <button class="chip active" data-f="todos" onclick="eqFiltrar('todos')">Todos</button>
+        <button class="chip" data-f="pendentes" onclick="eqFiltrar('pendentes')">Pendentes</button>
+        <button class="chip" data-f="pronto" onclick="eqFiltrar('pronto')">Prontos p/ retirada</button>
+        <button class="chip" data-f="finalizado" onclick="eqFiltrar('finalizado')">Finalizados</button>
+      </div>
+      <div id="eq-agenda-list" style="margin-top:12px"></div>
     </div>
 
     <div class="tabpane hide" data-pane="orcamentos">
       <div id="eq-orcamentos-list" style="margin-top:16px"></div>
     </div>
 
+    <div class="tabpane hide" data-pane="os">
+      <div style="margin-top:16px">
+        <button class="btn" onclick="toggleNovaOS()" id="btn-nova-os">+ Nova Ordem de Serviço</button>
+
+        <div class="hide" id="nova-os-form" style="margin-top:14px">
+          <label>Cliente</label>
+          <input id="os-busca-cliente" placeholder="Digite o nome do cliente" oninput="renderOSClienteSugestoes()" autocomplete="off">
+          <div id="os-cliente-sugestoes"></div>
+          <input type="hidden" id="os-cliente-id">
+
+          <label style="margin-top:10px">Veículo</label>
+          <input id="os-veiculo" placeholder="Modelo e placa">
+
+          <label style="margin-top:10px">Descrição do serviço</label>
+          <textarea id="os-descricao" placeholder="Detalhe o que foi/será feito"></textarea>
+
+          <label style="margin-top:10px">Valor (R$)</label>
+          <input type="number" id="os-valor" placeholder="0.00">
+
+          <button class="btn secondary" style="margin-top:12px" onclick="criarOrdemServico()">Criar Ordem de Serviço</button>
+        </div>
+
+        <div id="eq-os-list" style="margin-top:18px"></div>
+      </div>
+    </div>
+
+    <div class="tabpane hide" data-pane="novo-cliente">
+      <div style="margin-top:16px">
+        <p class="sub" style="margin-top:0">Cadastre um cliente diretamente, sem que ele precise se registrar pelo app. Defina uma senha inicial e informe ao cliente — ele pode trocá-la depois.</p>
+        <label>Nome completo</label>
+        <input id="novo-cli-nome" placeholder="Nome completo">
+        <label style="margin-top:10px">WhatsApp</label>
+        <input id="novo-cli-fone" placeholder="(00) 00000-0000" inputmode="tel" oninput="formatarTelefone(this)">
+        <label style="margin-top:10px">Senha inicial</label>
+        <input id="novo-cli-senha" type="text" placeholder="Mínimo 6 caracteres">
+
+        <label style="margin-top:14px">Veículo (opcional)</label>
+        <input id="novo-cli-v-modelo" placeholder="Modelo">
+        <input id="novo-cli-v-ano" placeholder="Ano" style="margin-top:8px">
+        <input id="novo-cli-v-placa" placeholder="Placa" style="margin-top:8px">
+
+        <button class="btn secondary" style="margin-top:14px" onclick="staffCriarCliente()">Cadastrar cliente</button>
+      </div>
+    </div>
+
     <div class="tabpane hide" data-pane="clientes">
-      <div id="eq-clientes-list" style="margin-top:16px"></div>
+      <input id="eq-busca-cliente" placeholder="Buscar por nome, telefone ou placa" oninput="renderEqClientes()" style="margin-top:14px">
+      <div id="eq-clientes-list" style="margin-top:12px"></div>
     </div>
 
     <div class="tabpane hide" data-pane="qrcode">
@@ -780,6 +871,13 @@
         <button class="btn" onclick="salvarFotoTrabalho()" id="foto-salvar-btn">Adicionar foto</button>
         <h3 style="margin-top:26px;font-size:14px;color:var(--grey)">Fotos publicadas</h3>
         <div id="eq-fotos-list"></div>
+      </div>
+    </div>
+
+    <div class="tabpane hide" data-pane="atividade">
+      <div style="margin-top:16px">
+        <p class="sub" style="margin-top:0">Últimas ações feitas pela equipe no sistema.</p>
+        <div id="eq-logs-list"></div>
       </div>
     </div>
   </div>
@@ -823,7 +921,9 @@ let DB = {
   orcamentos: [],    // {id, cliente_id, fone, veiculo, descricao, valor, status, criado_em}
   galeria: [],       // {id, titulo, imagem(base64), criado_em}
   avaliacoes: [],    // {id, agendamento_id, cliente_id, fone, veiculo, servico, nota, comentario, nome_cliente, criado_em}
-  cupons: []         // {id, cliente_id, codigo, percentual, usado, criado_em}
+  cupons: [],        // {id, cliente_id, codigo, percentual, usado, criado_em}
+  logs: [],          // {id, staff_id, staff_nome, acao, detalhe, criado_em}
+  ordens_servico: [] // {id, numero, cliente_id, orcamento_id, veiculo, descricao, valor, status, criado_por_nome, criado_em}
 };
 let SESSION = { role:null, userId:null, fone:null, nome:null };
 
@@ -870,8 +970,31 @@ async function fetchCupons(){
   DB.cupons = data||[];
   rerenderVisivel();
 }
+async function fetchLogs(){
+  const { data, error } = await supabaseClient.from('logs').select('*').order('criado_em', { ascending:false }).limit(100);
+  if(error){ console.error('logs:', error.message); return; }
+  DB.logs = data||[];
+  renderEqLogs();
+}
+async function registrarLog(acao, detalhe){
+  if(!SESSION || SESSION.role!=='equipe') return;
+  try{
+    await supabaseClient.from('logs').insert({
+      staff_id: SESSION.userId,
+      staff_nome: SESSION.nome || 'Equipe',
+      acao,
+      detalhe: detalhe || null
+    });
+  }catch(e){ console.error('log:', e); }
+}
+async function fetchOrdensServico(){
+  const { data, error } = await supabaseClient.from('ordens_servico').select('*').order('criado_em', { ascending:false });
+  if(error){ console.error('ordens_servico:', error.message); return; }
+  DB.ordens_servico = data||[];
+  renderEqOS();
+}
 async function fetchTudo(){
-  await Promise.all([fetchClientes(), fetchAgendamentos(), fetchOrcamentos(), fetchGaleria(), fetchAvaliacoes(), fetchCupons()]);
+  await Promise.all([fetchClientes(), fetchAgendamentos(), fetchOrcamentos(), fetchGaleria(), fetchAvaliacoes(), fetchCupons(), fetchOrdensServico()]);
 }
 
 /* ---------------- TEMPO REAL (avisa quando algo muda em qualquer aparelho) ---------------- */
@@ -882,6 +1005,8 @@ function subscribeRealtime(){
   supabaseClient.channel('rt-galeria').on('postgres_changes', {event:'*', schema:'public', table:'galeria'}, fetchGaleria).subscribe();
   supabaseClient.channel('rt-avaliacoes').on('postgres_changes', {event:'*', schema:'public', table:'avaliacoes'}, fetchAvaliacoes).subscribe();
   supabaseClient.channel('rt-cupons').on('postgres_changes', {event:'*', schema:'public', table:'cupons'}, fetchCupons).subscribe();
+  supabaseClient.channel('rt-logs').on('postgres_changes', {event:'*', schema:'public', table:'logs'}, fetchLogs).subscribe();
+  supabaseClient.channel('rt-os').on('postgres_changes', {event:'*', schema:'public', table:'ordens_servico'}, fetchOrdensServico).subscribe();
 }
 
 async function renderHomeStats(){
@@ -951,10 +1076,12 @@ function rerenderVisivel(){
     renderAlertaOleo();
   }
   if(SESSION.role==='equipe'){
+    renderEqResumo();
     renderEqAgenda();
     renderEqOrcamentos();
     renderEqClientes();
     renderEqFotos();
+    renderEqOS();
   }
 }
 
@@ -963,6 +1090,7 @@ const STATUS_CLASS = {
   'Recebido':'recebido','Em diagnóstico':'diagnostico','Aguardando aprovação':'aprovacao',
   'Em execução':'execucao','Finalizado':'finalizado','Pronto para retirada':'pronto'
 };
+let EQ_FILTRO = 'todos';
 
 function toast(msg){
   const t = document.createElement('div');
@@ -989,24 +1117,36 @@ function foneParaEmail(fone){
 
 function cliLoginModo(modo){
   document.querySelectorAll('#screen-cliente-login .tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===modo));
-  const nomeWrap = document.getElementById('cli-campo-nome');
-  const indicWrap = document.getElementById('cli-campo-indicacao');
-  const privWrap = document.getElementById('cli-campo-privacidade');
-  const btn = document.getElementById('cli-login-btn');
-  const sub = document.getElementById('cli-login-sub');
-  const esqueci = document.getElementById('cli-esqueci-senha');
+  const cadWizard = document.getElementById('cli-cadastro-wizard');
+  const entrarForm = document.getElementById('cli-entrar-form');
   if(modo==='criar'){
-    nomeWrap.classList.remove('hide'); indicWrap.classList.remove('hide'); privWrap.classList.remove('hide');
-    btn.textContent = 'Criar conta e entrar';
-    btn.onclick = clienteCriarConta;
-    sub.textContent = 'Crie seu cadastro com WhatsApp e uma senha.';
-    esqueci.classList.add('hide');
+    cadWizard.classList.remove('hide');
+    entrarForm.classList.add('hide');
+    cliCadastroIrParaPasso(1);
   } else {
-    nomeWrap.classList.add('hide'); indicWrap.classList.add('hide'); privWrap.classList.add('hide');
-    btn.textContent = 'Entrar';
-    btn.onclick = clienteEntrarConta;
-    sub.textContent = 'Digite seu WhatsApp e senha.';
-    esqueci.classList.remove('hide');
+    cadWizard.classList.add('hide');
+    entrarForm.classList.remove('hide');
+  }
+}
+
+function cliCadastroIrParaPasso(n){
+  document.querySelectorAll('#cli-cadastro-wizard .cadstep').forEach(el=>{
+    el.classList.toggle('hide', Number(el.dataset.cadstep)!==n);
+  });
+  document.getElementById('cli-cad-progress-bar').style.width = (n/3*100)+'%';
+  document.getElementById('cli-cad-step-label').textContent = 'Passo '+n+' de 3';
+}
+
+function cliCadastroProximo(passoAtual){
+  if(passoAtual===1){
+    const nome = document.getElementById('cli-nome').value.trim();
+    if(!nome){ toast('Digite seu nome completo'); return; }
+    cliCadastroIrParaPasso(2);
+  } else if(passoAtual===2){
+    const fone = document.getElementById('cli-fone').value.trim();
+    const digitos = fone.replace(/\D/g,'');
+    if(digitos.length < 10){ toast('Digite um WhatsApp válido, com DDD'); return; }
+    cliCadastroIrParaPasso(3);
   }
 }
 
@@ -1014,7 +1154,6 @@ async function clienteCriarConta(){
   const nome = document.getElementById('cli-nome').value.trim();
   const fone = document.getElementById('cli-fone').value.trim();
   const senha = document.getElementById('cli-senha').value;
-  const codigoDigitado = document.getElementById('cli-indicacao').value.trim().toUpperCase();
   if(!document.getElementById('cli-consentimento').checked){
     toast('Marque que aceita o uso dos seus dados para continuar');
     return;
@@ -1034,14 +1173,8 @@ async function clienteCriarConta(){
   }
   const userId = data.user.id;
 
-  let indicadoPor = null;
-  if(codigoDigitado){
-    const { data: idIndicador } = await supabaseClient.rpc('resolver_indicacao', { codigo: codigoDigitado });
-    indicadoPor = idIndicador || null;
-  }
-
   const { error: errCliente } = await supabaseClient.from('clientes').insert({
-    id: userId, nome, fone, veiculos: [], indicado_por: indicadoPor
+    id: userId, nome, fone, veiculos: []
   });
   if(errCliente){ toast('Conta criada, mas houve um erro ao salvar seu perfil: ' + errCliente.message); return; }
 
@@ -1049,8 +1182,8 @@ async function clienteCriarConta(){
 }
 
 async function clienteEntrarConta(){
-  const fone = document.getElementById('cli-fone').value.trim();
-  const senha = document.getElementById('cli-senha').value;
+  const fone = document.getElementById('cli-fone-entrar').value.trim();
+  const senha = document.getElementById('cli-senha-entrar').value;
   if(!fone || !senha){ toast('Preencha WhatsApp e senha'); return; }
   const email = foneParaEmail(fone);
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
@@ -1134,11 +1267,11 @@ function formatarTelefone(el){
 let agData = { categoria:null, modelo:null, ano:null, placa:null, veiculo:null, veiculoLabel:'', servicoBase:null, servico:null, tamanho:null, data:null, hora:null };
 const AG_TOTAL_STEPS = 8;
 const HORARIOS_SUGERIDOS = ['08:00','09:00','10:00','11:00','13:30','14:30','15:30','16:30'];
-const SERVICOS_GRANDES = ['Revisão','Conserto elétrico'];
+const SERVICOS_GRANDES = ['Revisão preventiva', 'Elétrica', 'Alternador', 'Motor de arranque', 'Suspensão'];
 
 function agResetWizard(){
   agData = { categoria:null, modelo:null, ano:null, placa:null, veiculo:null, veiculoLabel:'', servicoBase:null, servico:null, tamanho:null, data:null, hora:null };
-  ['ag-v-modelo','ag-v-ano','ag-v-placa','ag-hora-custom','ag-obs','ag-detalhe-texto'].forEach(id=>{
+  ['ag-v-modelo','ag-v-ano','ag-v-placa','ag-hora-custom','ag-obs','ag-detalhe-texto','ag-codigo-indicacao'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
@@ -1162,6 +1295,32 @@ function agIrParaPasso(n){
 }
 function agAvancar(n){ agIrParaPasso(n); }
 function agVoltar(n){ agIrParaPasso(n); }
+
+const SERVICOS_POR_CATEGORIA = {
+  'Elétrica': ['Alternador', 'Motor de arranque', 'Reparo de chicote'],
+  'Manutenção mecânica': ['Troca de óleo', 'Freio', 'Suspensão'],
+  'Som e acessórios': ['Instalação de som', 'Instalação de travas elétrica', 'Instalação de vidros elétrico', 'Reparo de vidro/trava'],
+  'Revisão preventiva': []
+};
+
+function agRenderStep5Opcoes(categoria){
+  const el = document.getElementById('ag-step5-opcoes');
+  const servicos = SERVICOS_POR_CATEGORIA[categoria] || [];
+  document.getElementById('ag-step5-detalhe').classList.add('hide');
+  el.classList.remove('hide');
+
+  if(categoria === 'Revisão preventiva'){
+    // Só o campo de texto livre, sem lista de opções
+    el.innerHTML = '';
+    el.classList.add('hide');
+    agPedirDetalhe('Revisão preventiva');
+    return;
+  }
+
+  el.innerHTML = servicos.map(s =>
+    `<button class="wizopt" onclick="agEscolherServicoFinal('${s}')">${s}</button>`
+  ).join('') + `<button class="wizopt" onclick="agPedirDetalhe('${categoria}')">Outros<span class="meta">Descrever o que precisa</span></button>`;
+}
 
 function agEscolherCategoria(cat){
   agData.categoria = cat;
@@ -1197,6 +1356,7 @@ async function agProximoPlaca(){
   agData.veiculo = v;
   agData.veiculoLabel = agData.modelo + ' — ' + v;
   await agSalvarVeiculoAtual();
+  agRenderStep5Opcoes(agData.categoria);
   agAvancar(5);
 }
 async function agSalvarVeiculoAtual(){
@@ -1212,7 +1372,13 @@ async function agSalvarVeiculoAtual(){
 function agPedirDetalhe(servico){
   agData.servicoBase = servico;
   document.getElementById('ag-step5-opcoes').classList.add('hide');
-  document.getElementById('ag-detalhe-label').textContent = servico==='Conserto elétrico' ? 'Qual o problema elétrico?' : 'O que precisa (reparo ou instalação)?';
+  const labels = {
+    'Elétrica': 'Qual o problema elétrico?',
+    'Manutenção mecânica': 'O que precisa (reparo ou manutenção)?',
+    'Som e acessórios': 'O que precisa (reparo ou instalação)?',
+    'Revisão preventiva': 'Descreva o que precisa revisar'
+  };
+  document.getElementById('ag-detalhe-label').textContent = labels[servico] || 'Descreva o que precisa';
   document.getElementById('ag-step5-detalhe').classList.remove('hide');
 }
 function agConfirmarDetalhe(){
@@ -1234,7 +1400,7 @@ function agIniciarComServicoPreDefinido(placa){
   const veiculo = c ? c.veiculos.find(v=>v.placa===placa) : null;
   if(!veiculo) return;
   cliTab('agendar');
-  agData.categoria = 'Revisão/Troca de óleo';
+  agData.categoria = 'Manutenção mecânica';
   agData.modelo = veiculo.modelo;
   agData.ano = veiculo.ano;
   agData.placa = veiculo.placa;
@@ -1334,7 +1500,7 @@ const OR_TOTAL_STEPS = 5;
 
 function orResetWizard(){
   orData = { modelo:null, ano:null, placa:null, veiculo:null, veiculoLabel:'', servicoBase:null, servico:null };
-  ['or-v-modelo','or-v-ano','or-v-placa','or-desc','or-detalhe-texto'].forEach(id=>{
+  ['or-v-modelo','or-v-ano','or-v-placa','or-desc','or-detalhe-texto','or-codigo-indicacao'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
@@ -1506,9 +1672,19 @@ async function criarAgendamento(){
   const tamanho = agData.tamanho;
   const data = agData.data;
   const hora = agData.hora;
-  const obs = document.getElementById('ag-obs').value;
+  let obs = document.getElementById('ag-obs').value;
   if(!veiculo){ toast('Cadastre um veículo primeiro'); return; }
   if(!data || !hora){ toast('Escolha data e horário'); return; }
+
+  const codigoIndicacao = (document.getElementById('ag-codigo-indicacao')?.value || '').trim().toUpperCase();
+  if(codigoIndicacao){
+    const { data: idIndicador } = await supabaseClient.rpc('resolver_indicacao', { codigo: codigoIndicacao });
+    const notaIndicacao = idIndicador
+      ? `Código de indicação aplicado: ${codigoIndicacao} — aplicar 12% de desconto na mão de obra.`
+      : `Código de indicação informado (${codigoIndicacao}) não foi encontrado — verificar antes de aplicar o desconto de 12% na mão de obra.`;
+    obs = obs ? `${obs}\n${notaIndicacao}` : notaIndicacao;
+  }
+
   const { error } = await supabaseClient.from('agendamentos').insert({
     cliente_id: SESSION.userId, fone:SESSION.fone, veiculo, servico, tamanho, data, hora, obs, status:'Recebido'
   });
@@ -1523,8 +1699,17 @@ async function criarOrcamento(){
   if(!veiculo){ toast('Preencha os dados do veículo primeiro'); return; }
   if(!orData.servico){ toast('Escolha o serviço'); return; }
   const descricao = orData.servico + (detalheExtra ? ' — ' + detalheExtra : '');
+
+  const codigoIndicacao = (document.getElementById('or-codigo-indicacao')?.value || '').trim().toUpperCase();
+  let descontoIndicacao = false;
+  if(codigoIndicacao){
+    const { data: idIndicador } = await supabaseClient.rpc('resolver_indicacao', { codigo: codigoIndicacao });
+    descontoIndicacao = !!idIndicador;
+    if(!descontoIndicacao){ toast('Código de indicação não encontrado — pedido será enviado sem desconto'); }
+  }
+
   const { error } = await supabaseClient.from('orcamentos').insert({
-    cliente_id: SESSION.userId, fone:SESSION.fone, veiculo, descricao, valor:null, status:'Pendente'
+    cliente_id: SESSION.userId, fone:SESSION.fone, veiculo, descricao, valor:null, status:'Pendente', desconto_indicacao: descontoIndicacao
   });
   if(error){ toast('Erro ao enviar: '+error.message); return; }
   toast('Pedido de orçamento enviado');
@@ -1541,6 +1726,7 @@ function renderClienteOrcamentos(){
         <span class="badge ${o.status==='Aprovado'?'finalizado':o.status==='Enviado'?'execucao':'recebido'}">${o.status}</span>
       </div>
       <div class="small">${o.descricao}</div>
+      ${o.desconto_indicacao ? `<div class="small" style="color:var(--gold);font-weight:700;margin-top:4px">🎁 Cupom de indicação aplicado (12% na mão de obra)</div>` : ''}
       ${o.valor ? `<div style="margin-top:8px;color:var(--gold);font-weight:800;">R$ ${Number(o.valor).toFixed(2)}</div>` : ''}
     </div>
   `).join('');
@@ -1625,7 +1811,9 @@ async function entrarComoEquipeLogada(user){
   SESSION = { role:'equipe', userId:user.id, nome: (user.user_metadata && user.user_metadata.nome) || user.email, fone:null };
   document.getElementById('eq-nome-logado').textContent = SESSION.nome;
   await fetchTudo();
-  renderEqAgenda(); renderEqOrcamentos(); renderEqClientes(); renderEqFotos(); renderQR();
+  renderEqResumo(); renderEqAgenda(); renderEqOrcamentos(); renderEqClientes(); renderEqFotos(); renderQR();
+  fetchLogs();
+  fetchOrdensServico();
   go('equipe-dash');
 }
 async function equipeEntrar(){
@@ -1652,8 +1840,259 @@ function eqTab(name){
   document.querySelectorAll('#screen-equipe-dash .tabpane').forEach(p=>p.classList.toggle('hide', p.dataset.pane!==name));
 }
 
+function renderEqResumo(){
+  const el = document.getElementById('eq-resumo-stats');
+  if(!el) return;
+  const hojeISO = new Date().toISOString().slice(0,10);
+  const todos = DB.agendamentos || [];
+  const hoje = todos.filter(a=>a.data===hojeISO).length;
+  const pendentes = todos.filter(a=>a.status!=='Finalizado' && a.status!=='Pronto para retirada').length;
+  const orcAbertos = (DB.orcamentos||[]).filter(o=>o.status==='Pendente').length;
+  const totalClientes = Object.keys(DB.clientes||{}).length;
+  el.innerHTML = `
+    <div class="stat"><div class="num">${hoje}</div><div class="lbl">Hoje</div></div>
+    <div class="stat"><div class="num">${pendentes}</div><div class="lbl">Pendentes</div></div>
+    <div class="stat"><div class="num">${orcAbertos}</div><div class="lbl">Orçam. abertos</div></div>
+    <div class="stat"><div class="num">${totalClientes}</div><div class="lbl">Clientes</div></div>
+  `;
+}
+
+function renderEqLogs(){
+  const el = document.getElementById('eq-logs-list');
+  if(!el) return;
+  const list = DB.logs || [];
+  if(!list.length){ el.innerHTML = '<div class="empty">Nenhuma atividade registrada ainda.</div>'; return; }
+  el.innerHTML = list.map(l=>{
+    const dt = new Date(l.criado_em);
+    const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    return `<div class="card" style="padding:12px 14px">
+      <div style="display:flex;justify-content:space-between;gap:10px">
+        <strong style="color:var(--gold);font-size:13px">${l.acao}</strong>
+        <span class="small" style="white-space:nowrap">${dataFmt}</span>
+      </div>
+      ${l.detalhe ? `<div class="small" style="margin-top:4px">${l.detalhe}</div>` : ''}
+      <div class="small" style="margin-top:4px;color:var(--grey)">por ${l.staff_nome || 'Equipe'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- ORDENS DE SERVIÇO ---------------- */
+let OS_CLIENTE_SELECIONADO = null;
+
+function toggleNovaOS(){
+  const form = document.getElementById('nova-os-form');
+  form.classList.toggle('hide');
+  if(!form.classList.contains('hide')){
+    document.getElementById('os-busca-cliente').value = '';
+    document.getElementById('os-cliente-id').value = '';
+    document.getElementById('os-cliente-sugestoes').innerHTML = '';
+    document.getElementById('os-veiculo').value = '';
+    document.getElementById('os-descricao').value = '';
+    document.getElementById('os-valor').value = '';
+    OS_CLIENTE_SELECIONADO = null;
+  }
+}
+
+function renderOSClienteSugestoes(){
+  const termo = document.getElementById('os-busca-cliente').value.trim().toLowerCase();
+  const el = document.getElementById('os-cliente-sugestoes');
+  document.getElementById('os-cliente-id').value = '';
+  OS_CLIENTE_SELECIONADO = null;
+  if(!termo){ el.innerHTML = ''; return; }
+  const encontrados = Object.values(DB.clientes).filter(c=>(c.nome||'').toLowerCase().includes(termo)).slice(0,6);
+  if(!encontrados.length){ el.innerHTML = '<div class="small" style="color:var(--grey);margin-top:4px">Nenhum cliente encontrado.</div>'; return; }
+  el.innerHTML = encontrados.map(c=>`
+    <div class="os-sugestao" onclick="selecionarOSCliente('${c.id}')">${c.nome} — ${c.fone}</div>
+  `).join('');
+}
+
+function selecionarOSCliente(id){
+  const c = DB.clientes[id];
+  if(!c) return;
+  OS_CLIENTE_SELECIONADO = c;
+  document.getElementById('os-cliente-id').value = id;
+  document.getElementById('os-busca-cliente').value = c.nome;
+  document.getElementById('os-cliente-sugestoes').innerHTML = '';
+  if(c.veiculos && c.veiculos.length === 1){
+    document.getElementById('os-veiculo').value = `${c.veiculos[0].modelo} (${c.veiculos[0].placa})`;
+  }
+}
+
+async function criarOrdemServico(){
+  const clienteId = document.getElementById('os-cliente-id').value;
+  const veiculo = document.getElementById('os-veiculo').value.trim();
+  const descricao = document.getElementById('os-descricao').value.trim();
+  const valor = document.getElementById('os-valor').value;
+  if(!clienteId){ toast('Selecione um cliente da lista'); return; }
+  if(!veiculo){ toast('Informe o veículo'); return; }
+  if(!descricao){ toast('Descreva o serviço'); return; }
+
+  const { error } = await supabaseClient.from('ordens_servico').insert({
+    cliente_id: clienteId, veiculo, descricao, valor: valor || null,
+    criado_por_nome: SESSION.nome || 'Equipe'
+  });
+  if(error){ toast('Erro ao criar OS: '+error.message); return; }
+  toast('Ordem de Serviço criada');
+  registrarLog('Ordem de Serviço criada', `${DB.clientes[clienteId]?.nome || ''} — ${veiculo}`);
+  toggleNovaOS();
+}
+
+async function gerarOSDeOrcamento(orcamentoId){
+  const orc = DB.orcamentos.find(o=>o.id===orcamentoId);
+  if(!orc){ toast('Orçamento não encontrado'); return; }
+  const descricaoAtual = document.getElementById('desc-'+orcamentoId)?.value?.trim() || orc.descricao;
+  const valorAtual = document.getElementById('val-'+orcamentoId)?.value || orc.valor;
+
+  const { error } = await supabaseClient.from('ordens_servico').insert({
+    cliente_id: orc.cliente_id, orcamento_id: orc.id, veiculo: orc.veiculo,
+    descricao: descricaoAtual, valor: valorAtual || null,
+    criado_por_nome: SESSION.nome || 'Equipe'
+  });
+  if(error){ toast('Erro ao gerar OS: '+error.message); return; }
+  toast('Ordem de Serviço gerada a partir do orçamento');
+  registrarLog('Ordem de Serviço gerada de orçamento', `${DB.clientes[orc.cliente_id]?.nome || ''} — ${orc.veiculo}`);
+  eqTab('os');
+}
+
+function renderEqOS(){
+  const el = document.getElementById('eq-os-list');
+  if(!el) return;
+  const list = [...DB.ordens_servico];
+  if(!list.length){ el.innerHTML = '<div class="empty">Nenhuma Ordem de Serviço criada ainda.</div>'; return; }
+  el.innerHTML = list.map(os=>{
+    const cliente = DB.clientes[os.cliente_id];
+    return `
+    <div class="card">
+      <div class="row1">
+        <h3>OS #${os.numero} — ${cliente ? cliente.nome : 'Cliente removido'}</h3>
+        <span class="badge ${os.status==='Concluída'?'finalizado':os.status==='Em andamento'?'execucao':os.status==='Cancelada'?'recebido':'recebido'}">${os.status}</span>
+      </div>
+      <div class="small">${os.veiculo}</div>
+      <div class="small" style="margin-top:4px">${os.descricao}</div>
+      ${os.valor ? `<div style="margin-top:6px;color:var(--gold);font-weight:800;">R$ ${Number(os.valor).toFixed(2)}</div>` : ''}
+      <div class="small" style="margin-top:6px;color:var(--grey)">Criada em ${new Date(os.criado_em).toLocaleDateString('pt-BR')} por ${os.criado_por_nome||'Equipe'}</div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <select id="os-status-${os.id}" onchange="atualizarStatusOS('${os.id}', this.value)" style="flex:1">
+          <option value="Aberta" ${os.status==='Aberta'?'selected':''}>Aberta</option>
+          <option value="Em andamento" ${os.status==='Em andamento'?'selected':''}>Em andamento</option>
+          <option value="Concluída" ${os.status==='Concluída'?'selected':''}>Concluída</option>
+          <option value="Cancelada" ${os.status==='Cancelada'?'selected':''}>Cancelada</option>
+        </select>
+        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="imprimirOS('${os.id}')" title="Imprimir">🖨️ Imprimir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function atualizarStatusOS(id, status){
+  const { error } = await supabaseClient.from('ordens_servico').update({ status }).eq('id', id);
+  if(error){ toast('Erro ao atualizar: '+error.message); return; }
+  toast('Status da OS atualizado');
+  const os = DB.ordens_servico.find(o=>o.id===id);
+  const clienteNome = os ? (DB.clientes[os.cliente_id]?.nome || '') : '';
+  registrarLog('Status de OS alterado', `${clienteNome ? clienteNome+' — ' : ''}${status}`);
+}
+
+function imprimirOS(id){
+  const os = DB.ordens_servico.find(o=>o.id===id);
+  if(!os){ toast('OS não encontrada'); return; }
+  const cliente = DB.clientes[os.cliente_id];
+  const dataFmt = new Date(os.criado_em).toLocaleDateString('pt-BR');
+  const janela = window.open('', '_blank');
+  janela.document.write(`
+    <html>
+    <head>
+      <title>Ordem de Serviço #${os.numero}</title>
+      <style>
+        body{ font-family: Arial, sans-serif; padding:40px; color:#111; }
+        h1{ color:#111; border-bottom:3px solid #f4c430; padding-bottom:10px; }
+        .linha{ margin:14px 0; }
+        .label{ font-weight:bold; color:#555; font-size:12px; text-transform:uppercase; }
+        .valor{ font-size:15px; margin-top:2px; }
+        .caixa{ border:1px solid #ccc; border-radius:8px; padding:16px; margin-top:20px; }
+        .rodape{ margin-top:50px; display:flex; justify-content:space-between; }
+        .assinatura{ border-top:1px solid #333; width:220px; text-align:center; padding-top:6px; font-size:12px; }
+      </style>
+    </head>
+    <body>
+      <h1>ZAGO AUTO SERVICE — Ordem de Serviço #${os.numero}</h1>
+      <div class="linha"><div class="label">Data</div><div class="valor">${dataFmt}</div></div>
+      <div class="linha"><div class="label">Cliente</div><div class="valor">${cliente ? cliente.nome : '-'}</div></div>
+      <div class="linha"><div class="label">WhatsApp</div><div class="valor">${cliente ? cliente.fone : '-'}</div></div>
+      <div class="linha"><div class="label">Veículo</div><div class="valor">${os.veiculo}</div></div>
+      <div class="caixa">
+        <div class="label">Serviço</div>
+        <div class="valor">${(os.descricao||'').replace(/\n/g,'<br>')}</div>
+      </div>
+      ${os.valor ? `<div class="linha"><div class="label">Valor</div><div class="valor">R$ ${Number(os.valor).toFixed(2)}</div></div>` : ''}
+      <div class="linha"><div class="label">Status</div><div class="valor">${os.status}</div></div>
+      <div class="rodape">
+        <div class="assinatura">Assinatura do cliente</div>
+        <div class="assinatura">Zago Auto Service</div>
+      </div>
+    </body>
+    </html>
+  `);
+  janela.document.close();
+  janela.focus();
+  setTimeout(()=>janela.print(), 300);
+}
+
+/* ---------------- CADASTRO MANUAL DE CLIENTE (equipe) ---------------- */
+async function staffCriarCliente(){
+  const nome = document.getElementById('novo-cli-nome').value.trim();
+  const fone = document.getElementById('novo-cli-fone').value.trim();
+  const senha = document.getElementById('novo-cli-senha').value;
+  const vModelo = document.getElementById('novo-cli-v-modelo').value.trim();
+  const vAno = document.getElementById('novo-cli-v-ano').value.trim();
+  const vPlaca = document.getElementById('novo-cli-v-placa').value.trim().toUpperCase();
+
+  if(!nome || !fone){ toast('Preencha nome e WhatsApp'); return; }
+  if(!senha || senha.length < 6){ toast('A senha precisa ter pelo menos 6 caracteres'); return; }
+
+  // Usa um cliente Supabase temporário e isolado, para não derrubar a sessão da equipe
+  const clienteTemp = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession:false, autoRefreshToken:false }
+  });
+
+  const email = foneParaEmail(fone);
+  const { data, error } = await clienteTemp.auth.signUp({ email, password: senha });
+  if(error){
+    if(/registered|exists/i.test(error.message||'')){
+      toast('Esse WhatsApp já tem cadastro.');
+    } else {
+      toast('Erro ao criar conta: ' + error.message);
+    }
+    return;
+  }
+  const userId = data.user.id;
+  const veiculos = (vModelo && vPlaca) ? [{ modelo:vModelo, ano:vAno, placa:vPlaca }] : [];
+
+  const { error: errCliente } = await supabaseClient.from('clientes').insert({
+    id: userId, nome, fone, veiculos
+  });
+  if(errCliente){ toast('Conta criada, mas houve erro ao salvar o perfil: ' + errCliente.message); return; }
+
+  toast(`Cliente cadastrado! Informe ao cliente: WhatsApp ${fone} e a senha definida.`);
+  registrarLog('Cliente cadastrado pela equipe', nome);
+
+  ['novo-cli-nome','novo-cli-fone','novo-cli-senha','novo-cli-v-modelo','novo-cli-v-ano','novo-cli-v-placa'].forEach(id=>{
+    document.getElementById(id).value = '';
+  });
+}
+
+function eqFiltrar(f){
+  EQ_FILTRO = f;
+  document.querySelectorAll('#eq-status-filtro .chip').forEach(c=>c.classList.toggle('active', c.dataset.f===f));
+  renderEqAgenda();
+}
+
 function renderEqAgenda(){
-  const list = [...DB.agendamentos];
+  let list = [...DB.agendamentos];
+  if(EQ_FILTRO==='pendentes') list = list.filter(a=>a.status!=='Finalizado' && a.status!=='Pronto para retirada');
+  else if(EQ_FILTRO==='pronto') list = list.filter(a=>a.status==='Pronto para retirada');
+  else if(EQ_FILTRO==='finalizado') list = list.filter(a=>a.status==='Finalizado');
   const el = document.getElementById('eq-agenda-list');
 
   const vencidos = [];
@@ -1673,7 +2112,10 @@ function renderEqAgenda(){
     </div>`;
   }
 
-  if(!list.length){ el.innerHTML = resumoHtml + '<div class="empty">Nenhum agendamento ainda.</div>'; return; }
+  if(!list.length){
+    const msg = EQ_FILTRO==='todos' ? 'Nenhum agendamento ainda.' : 'Nenhum agendamento nesse filtro.';
+    el.innerHTML = resumoHtml + `<div class="empty">${msg}</div>`; return;
+  }
   el.innerHTML = resumoHtml + list.map(a=>{
     const cliente = DB.clientes[a.cliente_id];
     const opts = STATUS_STEPS.map(s=>`<option value="${s}" ${s===a.status?'selected':''}>${s}</option>`).join('');
@@ -1694,6 +2136,9 @@ async function atualizarStatusAgendamento(id, status){
   const { error } = await supabaseClient.from('agendamentos').update({ status }).eq('id', id);
   if(error){ toast('Erro ao atualizar: '+error.message); return; }
   toast('Status atualizado — cliente notificado');
+  const agRef = DB.agendamentos.find(a => a.id === id);
+  const clienteNome = agRef ? (DB.clientes[agRef.cliente_id]?.nome || '') : '';
+  registrarLog('Status de agendamento alterado', `${clienteNome ? clienteNome+' — ' : ''}${status}`);
 
   if(status === 'Finalizado'){
     const ag = DB.agendamentos.find(a => a.id === id);
@@ -1708,36 +2153,142 @@ async function atualizarStatusAgendamento(id, status){
 }
 
 function renderEqOrcamentos(){
+  // Preserva o que a equipe está digitando (descrição/valor) caso uma
+  // atualização em tempo real de outra parte do sistema force um re-render.
+  const digitados = {};
+  document.querySelectorAll('#eq-orcamentos-list textarea[id^="desc-"]').forEach(t=>{
+    const id = t.id.replace('desc-','');
+    digitados[id] = digitados[id] || {};
+    digitados[id].desc = t.value;
+  });
+  document.querySelectorAll('#eq-orcamentos-list input[id^="val-"]').forEach(inp=>{
+    const id = inp.id.replace('val-','');
+    digitados[id] = digitados[id] || {};
+    digitados[id].val = inp.value;
+  });
+
   const list = [...DB.orcamentos];
   const el = document.getElementById('eq-orcamentos-list');
   if(!list.length){ el.innerHTML = '<div class="empty">Nenhum pedido de orçamento ainda.</div>'; return; }
   el.innerHTML = list.map(o=>{
     const cliente = DB.clientes[o.cliente_id];
+    const descAtual = digitados[o.id]?.desc !== undefined ? digitados[o.id].desc : (o.descricao||'');
+    const valAtual = digitados[o.id]?.val !== undefined ? digitados[o.id].val : (o.valor||'');
     return `
     <div class="card">
       <div class="row1">
         <h3>${cliente ? cliente.nome : o.fone}</h3>
         <span class="badge ${o.status==='Aprovado'?'finalizado':o.status==='Enviado'?'execucao':'recebido'}">${o.status}</span>
       </div>
-      <div class="small">${o.veiculo} — ${o.descricao}</div>
-      <label style="margin-bottom:0">Valor (R$)</label>
-      <input type="number" id="val-${o.id}" value="${o.valor||''}" placeholder="0.00">
-      <button class="btn secondary" style="margin-top:10px" onclick="enviarOrcamento('${o.id}')">Enviar orçamento ao cliente</button>
+      <div class="small">${o.veiculo}</div>
+      ${o.desconto_indicacao ? `<div class="small" style="color:var(--gold);font-weight:700;margin-top:4px">🎁 Cliente tem cupom de indicação — 12% de desconto na mão de obra será aplicado automaticamente</div>` : ''}
+      <label style="margin-bottom:0;margin-top:8px">Descrição do serviço</label>
+      <textarea id="desc-${o.id}" style="min-height:70px">${descAtual.replace(/</g,'&lt;')}</textarea>
+      <label style="margin-bottom:0">Valor da mão de obra (R$)</label>
+      <input type="number" id="val-${o.id}" value="${valAtual}" placeholder="0.00" oninput="atualizarPreviaDesconto('${o.id}', ${o.desconto_indicacao ? 'true':'false'})">
+      <div class="small" id="previa-desconto-${o.id}" style="margin-top:4px;color:var(--gold)"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn secondary" style="margin:0" onclick="salvarOrcamento('${o.id}')">Salvar</button>
+        <button class="btn" style="margin:0" onclick="enviarOrcamentoWhatsApp('${o.id}')">Enviar via WhatsApp</button>
+      </div>
+      <button class="btn ghost" style="margin-top:8px" onclick="gerarOSDeOrcamento('${o.id}')">📋 Gerar Ordem de Serviço</button>
     </div>`;
   }).join('');
+  list.forEach(o=>{ if(digitados[o.id]?.val !== undefined) atualizarPreviaDesconto(o.id, o.desconto_indicacao); });
 }
-async function enviarOrcamento(id){
-  const val = document.getElementById('val-'+id).value;
-  if(!val){ toast('Informe um valor'); return; }
-  const { error } = await supabaseClient.from('orcamentos').update({ valor: val, status: 'Enviado' }).eq('id', id);
+
+function calcularValorFinalOrcamento(id){
+  const valDigitado = Number(document.getElementById('val-'+id).value);
+  const orc = DB.orcamentos.find(o=>o.id===id);
+  const temDesconto = orc ? orc.desconto_indicacao : false;
+  const valorFinal = temDesconto ? +(valDigitado * 0.88).toFixed(2) : valDigitado;
+  return { valDigitado, temDesconto, valorFinal };
+}
+
+async function salvarOrcamento(id){
+  const descricao = document.getElementById('desc-'+id).value.trim();
+  const { valDigitado, temDesconto, valorFinal } = calcularValorFinalOrcamento(id);
+  if(!valDigitado){ toast('Informe um valor'); return; }
+  const { error } = await supabaseClient.from('orcamentos').update({ descricao, valor: valorFinal, status: 'Enviado' }).eq('id', id);
   if(error){ toast('Erro: '+error.message); return; }
-  toast('Orçamento enviado ao cliente');
+  toast(temDesconto
+    ? `Orçamento salvo com 12% de desconto aplicado (R$ ${valDigitado.toFixed(2)} → R$ ${valorFinal.toFixed(2)})`
+    : 'Orçamento salvo');
+  const orc = DB.orcamentos.find(o=>o.id===id);
+  const clienteNome = orc ? (DB.clientes[orc.cliente_id]?.nome || '') : '';
+  registrarLog('Orçamento salvo', `${clienteNome ? clienteNome+' — ' : ''}R$ ${valorFinal.toFixed(2)}${temDesconto ? ' (com 12% de desconto)' : ''}`);
+}
+
+async function enviarOrcamentoWhatsApp(id){
+  const descricao = document.getElementById('desc-'+id).value.trim();
+  const { valDigitado, temDesconto, valorFinal } = calcularValorFinalOrcamento(id);
+  if(!valDigitado){ toast('Informe um valor antes de enviar'); return; }
+
+  const orc = DB.orcamentos.find(o=>o.id===id);
+  const cliente = orc ? DB.clientes[orc.cliente_id] : null;
+  const fone = (cliente?.fone || orc?.fone || '').replace(/\D/g,'');
+  if(!fone){ toast('Não encontrei o WhatsApp desse cliente'); return; }
+  const foneComDDI = fone.length <= 11 ? '55'+fone : fone;
+
+  const { error } = await supabaseClient.from('orcamentos').update({ descricao, valor: valorFinal, status: 'Enviado' }).eq('id', id);
+  if(error){ toast('Erro ao salvar antes de enviar: '+error.message); return; }
+
+  let msg = `Olá${cliente ? ', '+cliente.nome.split(' ')[0] : ''}! Segue o orçamento da Zago Auto Service:\n\n`;
+  msg += `🚗 Veículo: ${orc.veiculo}\n`;
+  msg += `🔧 Serviço: ${descricao}\n`;
+  if(temDesconto){
+    msg += `💰 Valor da mão de obra: R$ ${valDigitado.toFixed(2)}\n`;
+    msg += `🎁 Desconto de indicação (12%): -R$ ${(valDigitado-valorFinal).toFixed(2)}\n`;
+    msg += `✅ Valor final: R$ ${valorFinal.toFixed(2)}\n`;
+  } else {
+    msg += `💰 Valor: R$ ${valorFinal.toFixed(2)}\n`;
+  }
+  msg += `\nQualquer dúvida, estamos à disposição!`;
+
+  window.open('https://wa.me/'+foneComDDI+'?text='+encodeURIComponent(msg), '_blank');
+
+  toast('Orçamento salvo e WhatsApp aberto');
+  const clienteNome = cliente ? cliente.nome : '';
+  registrarLog('Orçamento enviado via WhatsApp', `${clienteNome ? clienteNome+' — ' : ''}R$ ${valorFinal.toFixed(2)}${temDesconto ? ' (com 12% de desconto)' : ''}`);
+}
+
+function atualizarPreviaDesconto(id, temDesconto){
+  const el = document.getElementById('previa-desconto-'+id);
+  if(!el) return;
+  const val = Number(document.getElementById('val-'+id).value);
+  if(!temDesconto || !val){ el.textContent = ''; return; }
+  const final = val * 0.88;
+  el.textContent = `Com 12% de desconto: R$ ${final.toFixed(2)} (valor original R$ ${val.toFixed(2)})`;
 }
 
 function renderEqClientes(){
-  const list = Object.values(DB.clientes);
+  // Preserva uma edição em andamento (painel aberto + valores digitados)
+  // para que atualizações em tempo real de OUTRAS partes do sistema
+  // não apaguem o que a equipe está digitando antes de salvar.
+  const painelAberto = [...document.querySelectorAll('.eq-edit-panel')].find(p => !p.classList.contains('hide'));
+  const abertoId = painelAberto ? painelAberto.id.replace('editar-cliente-','') : null;
+  let nomeDigitado = null;
+  let veiculosDigitados = null;
+  if(abertoId){
+    nomeDigitado = document.getElementById('edit-nome-'+abertoId)?.value;
+    veiculosDigitados = [...document.querySelectorAll(`#edit-veiculos-${abertoId} .eq-veiculo-edit-row`)].map(linha=>{
+      const inputs = linha.querySelectorAll('input');
+      return { modelo: inputs[0].value, ano: inputs[1].value, placa: inputs[2].value };
+    });
+  }
+
+  const busca = (document.getElementById('eq-busca-cliente')?.value || '').trim().toLowerCase();
+  let list = Object.values(DB.clientes);
+  if(busca){
+    list = list.filter(c=>{
+      const nome = (c.nome||'').toLowerCase();
+      const fone = (c.fone||'').toLowerCase();
+      const veiculos = (c.veiculos||[]).map(v=>`${v.modelo||''} ${v.placa||''}`.toLowerCase()).join(' ');
+      return nome.includes(busca) || fone.includes(busca) || veiculos.includes(busca);
+    });
+  }
   const el = document.getElementById('eq-clientes-list');
-  if(!list.length){ el.innerHTML = '<div class="empty">Nenhum cliente cadastrado ainda.</div>'; return; }
+  if(!list.length){ el.innerHTML = `<div class="empty">${busca ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.'}</div>`; return; }
   el.innerHTML = list.map(c=>{
     const indicador = c.indicado_por ? DB.clientes[c.indicado_por] : null;
     const cupons = (DB.cupons||[]).filter(cp=>cp.cliente_id===c.id);
@@ -1785,6 +2336,26 @@ function renderEqClientes(){
       </div>
     </div>`;
   }).join('');
+
+  // Restaura a edição que estava em andamento, se houver
+  if(abertoId && document.getElementById('editar-cliente-'+abertoId)){
+    toggleEditarCliente(abertoId);
+    const nomeInput = document.getElementById('edit-nome-'+abertoId);
+    if(nomeInput && nomeDigitado !== null) nomeInput.value = nomeDigitado;
+    if(veiculosDigitados){
+      const wrap = document.getElementById('edit-veiculos-'+abertoId);
+      if(wrap){
+        wrap.innerHTML = veiculosDigitados.map((v,i)=>`
+          <div class="eq-veiculo-edit-row">
+            <input placeholder="Modelo" value="${(v.modelo||'').replace(/"/g,'')}" id="edit-v-modelo-${abertoId}-${i}">
+            <input placeholder="Ano" value="${(v.ano||'').replace(/"/g,'')}" id="edit-v-ano-${abertoId}-${i}">
+            <input placeholder="Placa" value="${(v.placa||'').replace(/"/g,'')}" id="edit-v-placa-${abertoId}-${i}">
+            <button onclick="removerLinhaVeiculoEdit('${abertoId}','${i}')">✕</button>
+          </div>
+        `).join('');
+      }
+    }
+  }
 }
 
 function toggleEditarCliente(id){
@@ -1793,9 +2364,8 @@ function toggleEditarCliente(id){
 }
 
 function adicionarLinhaVeiculoEdit(clienteId){
-  const c = DB.clientes[clienteId];
-  const i = c.veiculos.length;
   const wrap = document.getElementById('edit-veiculos-'+clienteId);
+  const i = wrap.querySelectorAll('.eq-veiculo-edit-row').length;
   wrap.insertAdjacentHTML('beforeend', `
     <div class="eq-veiculo-edit-row" id="linha-veiculo-${clienteId}-${i}">
       <input placeholder="Modelo" id="edit-v-modelo-${clienteId}-${i}">
@@ -1822,9 +2392,18 @@ async function salvarEdicaoCliente(id){
     const placa = inputs[2].value.trim().toUpperCase();
     if(modelo && placa){ veiculos.push({modelo, ano, placa}); }
   });
-  const { error } = await supabaseClient.from('clientes').update({ nome, veiculos }).eq('id', id);
+  const { data: atualizado, error } = await supabaseClient
+    .from('clientes')
+    .update({ nome, veiculos })
+    .eq('id', id)
+    .select();
   if(error){ toast('Erro ao salvar: '+error.message); return; }
+  if(!atualizado || atualizado.length === 0){
+    toast('Não foi possível salvar — sua conta pode não ter permissão de equipe. Contate o suporte.');
+    return;
+  }
   toast('Cliente atualizado');
+  registrarLog('Cliente editado', nome);
 }
 
 async function excluirCliente(id, nome){
@@ -1832,17 +2411,24 @@ async function excluirCliente(id, nome){
   const { error } = await supabaseClient.from('clientes').delete().eq('id', id);
   if(error){ toast('Erro ao excluir: '+error.message); return; }
   toast('Cliente excluído. Para remover o login dele, apague também em Authentication > Users no Supabase.');
+  registrarLog('Cliente excluído', nome);
 }
 
 async function gerarCupom(clienteId){
   const input = document.getElementById('cupom-percentual-'+clienteId);
   const percentual = Number(input.value);
   if(!percentual || percentual<=0 || percentual>100){ toast('Informe um percentual válido (1 a 100)'); return; }
+  const nomeCliente = DB.clientes[clienteId]?.nome || '';
   let tentativas = 0;
   while(tentativas < 3){
     const codigo = 'ZAGO' + Math.floor(1000 + Math.random()*9000);
     const { error } = await supabaseClient.from('cupons').insert({ cliente_id: clienteId, codigo, percentual });
-    if(!error){ toast('Cupom gerado: '+codigo); input.value=''; return; }
+    if(!error){
+      toast('Cupom gerado: '+codigo);
+      registrarLog('Cupom gerado', `${nomeCliente} — ${codigo} (${percentual}%)`);
+      input.value='';
+      return;
+    }
     tentativas++;
   }
   toast('Erro ao gerar cupom, tente novamente');
@@ -1850,6 +2436,7 @@ async function gerarCupom(clienteId){
 async function marcarCupomUsado(id){
   await supabaseClient.from('cupons').update({ usado:true }).eq('id', id);
   toast('Cupom marcado como usado');
+  registrarLog('Cupom marcado como usado', id);
 }
 
 /* ---------------- Fotos de trabalhos realizados ---------------- */
@@ -1941,7 +2528,7 @@ function renderQR(){
 (async function(){
   try {
     const numeroEmergencia = '5514991433711'; // (14) 99143-3711
-    const mensagem = 'Olá! Preciso de socorro urgente, meu carro não está funcionando. Estou em:';
+    const mensagem = 'Olá! Gostaria de falar sobre meu carro. Estou em:';
     const linkEmergencia = document.getElementById('whatsapp-emergencia');
     if (linkEmergencia) {
       linkEmergencia.href = 'https://wa.me/' + numeroEmergencia + '?text=' + encodeURIComponent(mensagem);
