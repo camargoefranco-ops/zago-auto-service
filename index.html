@@ -129,8 +129,8 @@
   }
 
   .tabs{
-    display:flex;gap:6px;
-    padding:0 18px;
+    display:flex;gap:4px;
+    padding:0 14px;
     margin:12px 0 4px;
     border-bottom:1px solid var(--line);
     overflow-x:auto;
@@ -138,11 +138,11 @@
     scrollbar-width:none;
   }
   .tabs::-webkit-scrollbar{display:none;}
-  .tab{flex:0 0 auto;}
   .tab{
-    flex:1;
+    flex:0 0 auto;
+    white-space:nowrap;
     text-align:center;
-    padding:10px 4px;
+    padding:10px 10px;
     font-size:12px;
     font-weight:700;
     color:var(--grey);
@@ -543,6 +543,7 @@
     <div class="topnav"><button class="backbtn" onclick="clienteSair()">‹ Sair</button></div>
     <h2 class="title" id="cli-boasvindas">Olá!</h2>
     <div id="cli-alerta-oleo"></div>
+    <div id="cli-alerta-revisao"></div>
 
     <div class="tabs">
       <div class="tab active" data-tab="agendar" onclick="cliTab('agendar')">Agendar</div>
@@ -916,7 +917,7 @@ if (!window.supabase || typeof window.supabase.createClient !== 'function') {
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let DB = {
-  clientes: {},      // id (uuid) -> {id, nome, fone, veiculos:[{placa,modelo,ano,ultimaTrocaOleo}], indicado_por}
+  clientes: {},      // id (uuid) -> {id, nome, fone, veiculos:[{placa,modelo,ano,ultimaTrocaOleo,ultimaRevisao}], indicado_por}
   agendamentos: [],  // {id, cliente_id, fone, veiculo, servico, tamanho, data, hora, obs, status, criado_em}
   orcamentos: [],    // {id, cliente_id, fone, veiculo, descricao, valor, status, criado_em}
   galeria: [],       // {id, titulo, imagem(base64), criado_em}
@@ -1074,6 +1075,7 @@ function rerenderVisivel(){
     renderGaleriaCliente();
     renderClienteIndicar();
     renderAlertaOleo();
+    renderAlertaRevisao();
   }
   if(SESSION.role==='equipe'){
     renderEqResumo();
@@ -1207,6 +1209,7 @@ async function entrarComoClienteLogado(userId, nome, fone){
   renderClienteStatus();
   renderClienteIndicar();
   renderAlertaOleo();
+  renderAlertaRevisao();
   go('cliente-dash');
 }
 
@@ -1395,19 +1398,21 @@ function agEscolherServicoFinal(servico){
   renderAgStep3Calendario();
   agAvancar(6);
 }
-function agIniciarComServicoPreDefinido(placa){
+function agIniciarComServicoPreDefinido(placa, servicoDesejado){
+  const categoria = servicoDesejado === 'Revisão preventiva' ? 'Revisão preventiva' : 'Manutenção mecânica';
+  const servico = servicoDesejado || 'Troca de óleo';
   const c = DB.clientes[SESSION.userId];
   const veiculo = c ? c.veiculos.find(v=>v.placa===placa) : null;
   if(!veiculo) return;
   cliTab('agendar');
-  agData.categoria = 'Manutenção mecânica';
+  agData.categoria = categoria;
   agData.modelo = veiculo.modelo;
   agData.ano = veiculo.ano;
   agData.placa = veiculo.placa;
   agData.veiculo = veiculo.placa;
   agData.veiculoLabel = veiculo.modelo + ' — ' + veiculo.placa;
-  agData.servico = 'Troca de óleo';
-  agData.tamanho = SERVICOS_GRANDES.includes('Troca de óleo') ? 'grande' : 'pequeno';
+  agData.servico = servico;
+  agData.tamanho = SERVICOS_GRANDES.includes(servico) ? 'grande' : 'pequeno';
   renderAgStep3Calendario();
   agAvancar(6);
 }
@@ -1646,6 +1651,45 @@ function renderAlertaOleo(){
     </div>`;
   }).join('');
 }
+function calcularStatusRevisao(ultimaRevisao){
+  if(!ultimaRevisao) return { status:'nao-registrado' };
+  const ultima = new Date(ultimaRevisao+'T00:00:00');
+  const proxima = new Date(ultima);
+  proxima.setMonth(proxima.getMonth()+12); // revisão preventiva geral: intervalo padrão de 12 meses
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const diffDias = Math.round((proxima - hoje) / 86400000);
+  let status = 'ok';
+  if(diffDias < 0) status = 'vencida';
+  else if(diffDias <= 30) status = 'proxima';
+  const proximaISO = proxima.getFullYear()+'-'+String(proxima.getMonth()+1).padStart(2,'0')+'-'+String(proxima.getDate()).padStart(2,'0');
+  return { status, diffDias, proximaISO, proximaBR: proximaISO.split('-').reverse().join('/') };
+}
+async function registrarRevisaoHoje(placa){
+  const c = DB.clientes[SESSION.userId];
+  const hoje = new Date();
+  const hojeISO = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
+  const novosVeiculos = c.veiculos.map(v => v.placa===placa ? {...v, ultimaRevisao: hojeISO} : v);
+  await supabaseClient.from('clientes').update({ veiculos: novosVeiculos }).eq('id', SESSION.userId);
+  toast('Revisão registrada!');
+}
+function renderAlertaRevisao(){
+  const el = document.getElementById('cli-alerta-revisao');
+  if(!el) return;
+  const c = DB.clientes[SESSION.userId];
+  if(!c){ el.innerHTML=''; return; }
+  const problemas = c.veiculos
+    .map(v => ({ v, info: calcularStatusRevisao(v.ultimaRevisao) }))
+    .filter(x => x.info.status==='vencida' || x.info.status==='proxima');
+  if(!problemas.length){ el.innerHTML=''; return; }
+  el.innerHTML = problemas.map(({v,info})=>{
+    const vencida = info.status==='vencida';
+    return `<div class="alerta-oleo ${vencida?'':'proxima'}">
+      <strong>${vencida ? '⚠️ Revisão preventiva vencida' : '🔔 Revisão preventiva se aproximando'} — ${v.modelo}</strong>
+      ${vencida ? `Venceu há ${Math.abs(info.diffDias)} dia(s) (previsto: ${info.proximaBR}).` : `Prevista para ${info.proximaBR} (em ${info.diffDias} dia(s)).`}
+      <br><button onclick="agIniciarComServicoPreDefinido('${v.placa}', 'Revisão preventiva')">Agendar revisão agora</button>
+    </div>`;
+  }).join('');
+}
 function renderClienteVeiculosList(){
   const c = DB.clientes[SESSION.userId];
   const el = document.getElementById('cli-veiculos-list');
@@ -1662,7 +1706,18 @@ function renderClienteVeiculosList(){
       oleoHtml = `<div class="small" style="margin-top:8px;">Próxima troca de óleo: <strong style="color:${cor}">${info.proximaBR} (${label})</strong></div>
         <button class="btn ghost" style="width:auto;margin-top:6px;padding:6px 12px;font-size:11px;" onclick="registrarTrocaOleoHoje('${v.placa}')">Troquei hoje</button>`;
     }
-    return `<div class="card"><h3>${v.modelo}</h3><div class="small">Placa ${v.placa}${v.ano? ' • '+v.ano : ''}</div>${oleoHtml}</div>`;
+    const infoRev = calcularStatusRevisao(v.ultimaRevisao);
+    let revisaoHtml;
+    if(infoRev.status==='nao-registrado'){
+      revisaoHtml = `<div class="small" style="margin-top:8px;">Revisão preventiva não registrada</div>
+        <button class="btn ghost" style="width:auto;margin-top:6px;padding:6px 12px;font-size:11px;" onclick="registrarRevisaoHoje('${v.placa}')">Registrar revisão hoje</button>`;
+    } else {
+      const cor = infoRev.status==='vencida' ? 'var(--danger)' : infoRev.status==='proxima' ? 'var(--wait)' : 'var(--ok)';
+      const label = infoRev.status==='vencida' ? 'Vencida' : infoRev.status==='proxima' ? 'Próxima' : 'Em dia';
+      revisaoHtml = `<div class="small" style="margin-top:8px;">Próxima revisão preventiva: <strong style="color:${cor}">${infoRev.proximaBR} (${label})</strong></div>
+        <button class="btn ghost" style="width:auto;margin-top:6px;padding:6px 12px;font-size:11px;" onclick="registrarRevisaoHoje('${v.placa}')">Revisei hoje</button>`;
+    }
+    return `<div class="card"><h3>${v.modelo}</h3><div class="small">Placa ${v.placa}${v.ano? ' • '+v.ano : ''}</div>${oleoHtml}${revisaoHtml}</div>`;
   }).join('');
 }
 
@@ -2096,19 +2151,30 @@ function renderEqAgenda(){
   const el = document.getElementById('eq-agenda-list');
 
   const vencidos = [];
+  const vencidosRevisao = [];
   Object.values(DB.clientes).forEach(c=>{
     (c.veiculos||[]).forEach(v=>{
       const info = calcularStatusOleo(v.ultimaTrocaOleo);
       if(info.status==='vencida' || info.status==='proxima'){
         vencidos.push({cliente:c.nome, fone:c.fone, veiculo:v.modelo, placa:v.placa, info});
       }
+      const infoRev = calcularStatusRevisao(v.ultimaRevisao);
+      if(infoRev.status==='vencida' || infoRev.status==='proxima'){
+        vencidosRevisao.push({cliente:c.nome, fone:c.fone, veiculo:v.modelo, placa:v.placa, info:infoRev});
+      }
     });
   });
   let resumoHtml = '';
   if(vencidos.length){
-    resumoHtml = `<div class="card" style="border-color:var(--wait);margin-bottom:14px;">
+    resumoHtml += `<div class="card" style="border-color:var(--wait);margin-bottom:14px;">
       <h3 style="font-size:13.5px;color:var(--wait)">🛢️ Trocas de óleo vencendo/vencidas (${vencidos.length})</h3>
       ${vencidos.map(x=>`<div class="small" style="margin-top:4px;">${x.cliente} — ${x.veiculo} (${x.placa}): <strong style="color:${x.info.status==='vencida'?'var(--danger)':'var(--wait)'}">${x.info.status==='vencida'?'vencida há '+Math.abs(x.info.diffDias)+'d':'em '+x.info.diffDias+'d'}</strong></div>`).join('')}
+    </div>`;
+  }
+  if(vencidosRevisao.length){
+    resumoHtml += `<div class="card" style="border-color:var(--wait);margin-bottom:14px;">
+      <h3 style="font-size:13.5px;color:var(--wait)">🔧 Revisões preventivas vencendo/vencidas (${vencidosRevisao.length})</h3>
+      ${vencidosRevisao.map(x=>`<div class="small" style="margin-top:4px;">${x.cliente} — ${x.veiculo} (${x.placa}): <strong style="color:${x.info.status==='vencida'?'var(--danger)':'var(--wait)'}">${x.info.status==='vencida'?'vencida há '+Math.abs(x.info.diffDias)+'d':'em '+x.info.diffDias+'d'}</strong></div>`).join('')}
     </div>`;
   }
 
@@ -2146,6 +2212,13 @@ async function atualizarStatusAgendamento(id, status){
       const c = DB.clientes[ag.cliente_id];
       if(c){
         const novosVeiculos = c.veiculos.map(v => v.placa===ag.veiculo ? {...v, ultimaTrocaOleo: ag.data} : v);
+        await supabaseClient.from('clientes').update({ veiculos: novosVeiculos }).eq('id', ag.cliente_id);
+      }
+    }
+    if(ag && ag.servico && ag.servico.startsWith('Revisão preventiva')){
+      const c = DB.clientes[ag.cliente_id];
+      if(c){
+        const novosVeiculos = c.veiculos.map(v => v.placa===ag.veiculo ? {...v, ultimaRevisao: ag.data} : v);
         await supabaseClient.from('clientes').update({ veiculos: novosVeiculos }).eq('id', ag.cliente_id);
       }
     }
