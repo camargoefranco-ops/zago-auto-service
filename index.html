@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zago Auto Service</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f4c430">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zago">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -109,6 +118,21 @@
     letter-spacing:.2px;
   }
   .btn:active{transform:scale(.98);}
+  .btn.google-btn{
+    background:#fff;
+    color:#1f1f1f;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .divisor-ou{
+    display:flex;align-items:center;text-align:center;
+    color:var(--grey);font-size:12px;margin:16px 0;
+  }
+  .divisor-ou::before, .divisor-ou::after{
+    content:'';flex:1;height:1px;background:var(--line);
+  }
+  .divisor-ou span{padding:0 12px;}
   .btn.secondary{
     background:transparent;
     border:1px solid var(--gold-deep);
@@ -358,6 +382,18 @@
   .rate-stars{display:flex;gap:6px;margin:10px 0 12px;}
   .rate-stars span{font-size:30px;color:var(--line);cursor:pointer;line-height:1;user-select:none;}
   .rate-stars span.active{color:var(--gold);}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-overlay.hide{display:none;}
+  .modal-box{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:22px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;
+  }
+  .modal-box h3{margin:0 0 6px;font-size:16px;}
+  .modal-close-link{display:block;text-align:center;margin-top:12px;color:var(--grey);font-size:12.5px;cursor:pointer;}
   .rate-readonly{font-size:13px;color:var(--grey);margin-top:10px;}
   .rate-readonly .stars-fixed{color:var(--gold);font-size:16px;letter-spacing:1px;}
 
@@ -484,6 +520,17 @@
     <div class="topnav"><button class="backbtn" onclick="go('home')">‹ Voltar</button></div>
     <h2 class="title">Cadastro</h2>
 
+    <button class="btn google-btn" onclick="loginComGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;margin-right:8px">
+        <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.5z"/>
+        <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
+        <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3C29.3 35.4 26.8 36 24 36c-5.3 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.7 16.2 44 24 44z"/>
+        <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.3 5.3C40.9 36.5 44 30.9 44 24c0-1.3-.1-2.6-.4-3.5z"/>
+      </svg>
+      Entrar com Google
+    </button>
+    <div class="divisor-ou"><span>ou</span></div>
+
     <div class="tabs" style="padding:0;margin:0 0 14px;">
       <div class="tab active" data-tab="criar" onclick="cliLoginModo('criar')" style="flex:1;text-align:center;">Criar conta</div>
       <div class="tab" data-tab="entrar" onclick="cliLoginModo('entrar')" style="flex:1;text-align:center;">Já tenho conta</div>
@@ -539,6 +586,20 @@
   </div>
 
   <!-- ============ CLIENTE: DASHBOARD ============ -->
+  <!-- ============ CLIENTE: COMPLETAR CADASTRO (após login com Google) ============ -->
+  <div id="screen-cliente-completar" class="screen hide">
+    <h2 class="title">Só mais um passo</h2>
+    <p class="sub" style="margin-top:0">Precisamos do seu WhatsApp para agendar seus serviços.</p>
+
+    <label>Nome completo</label>
+    <input id="google-nome-completar" placeholder="Seu nome completo">
+
+    <label style="margin-top:10px">WhatsApp</label>
+    <input id="google-fone-completar" placeholder="(00) 00000-0000" inputmode="tel" oninput="formatarTelefone(this)">
+
+    <button class="btn secondary" style="margin-top:16px" onclick="finalizarCadastroGoogle()">Concluir cadastro</button>
+  </div>
+
   <div id="screen-cliente-dash" class="screen hide">
     <div class="topnav"><button class="backbtn" onclick="clienteSair()">‹ Sair</button></div>
     <h2 class="title" id="cli-boasvindas">Olá!</h2>
@@ -1108,10 +1169,6 @@ function go(id){
 }
 
 /* ---------------- CLIENTE: login/cadastro ---------------- */
-function gerarCodigoIndicacao(fone){
-  const digitos = (fone||'').replace(/\D/g,'');
-  return 'ZAGO' + digitos.slice(-4);
-}
 function foneParaEmail(fone){
   const digitos = (fone||'').replace(/\D/g,'');
   return 'cliente' + digitos + '@zagoapp.local';
@@ -1183,6 +1240,43 @@ async function clienteCriarConta(){
   await entrarComoClienteLogado(userId, nome, fone);
 }
 
+/* ---------------- LOGIN COM GOOGLE ---------------- */
+let GOOGLE_USER_PENDENTE = null;
+
+async function loginComGoogle(){
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname }
+  });
+  if(error){ toast('Erro ao iniciar login com Google: ' + error.message); }
+}
+
+async function continuarComoClienteAposGoogle(user){
+  const { data: clienteRow } = await supabaseClient.from('clientes').select('*').eq('id', user.id).single();
+  if(clienteRow){
+    await entrarComoClienteLogado(user.id, clienteRow.nome, clienteRow.fone);
+    return;
+  }
+  GOOGLE_USER_PENDENTE = user;
+  const nomeGoogle = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || '';
+  document.getElementById('google-nome-completar').value = nomeGoogle;
+  document.getElementById('google-fone-completar').value = '';
+  go('cliente-completar');
+}
+
+async function finalizarCadastroGoogle(){
+  const nome = document.getElementById('google-nome-completar').value.trim();
+  const fone = document.getElementById('google-fone-completar').value.trim();
+  if(!nome || !fone){ toast('Preencha nome e WhatsApp'); return; }
+  const user = GOOGLE_USER_PENDENTE;
+  if(!user){ toast('Sessão expirada, tente entrar novamente'); go('home'); return; }
+
+  const { error } = await supabaseClient.from('clientes').insert({ id: user.id, nome, fone, veiculos: [] });
+  if(error){ toast('Erro ao salvar cadastro: ' + error.message); return; }
+  GOOGLE_USER_PENDENTE = null;
+  await entrarComoClienteLogado(user.id, nome, fone);
+}
+
 async function clienteEntrarConta(){
   const fone = document.getElementById('cli-fone-entrar').value.trim();
   const senha = document.getElementById('cli-senha-entrar').value;
@@ -1210,6 +1304,7 @@ async function entrarComoClienteLogado(userId, nome, fone){
   renderClienteIndicar();
   renderAlertaOleo();
   renderAlertaRevisao();
+  verificarAvaliacaoPendente();
   go('cliente-dash');
 }
 
@@ -1222,7 +1317,8 @@ function clienteSair(){
 function renderClienteIndicar(){
   const codigoEl = document.getElementById('cli-codigo-indicacao');
   if(!codigoEl) return;
-  const meuCodigo = gerarCodigoIndicacao(SESSION.fone);
+  const c = DB.clientes[SESSION.userId];
+  const meuCodigo = (c && c.codigo_indicacao) || '...';
   codigoEl.textContent = meuCodigo;
   supabaseClient.rpc('contar_indicados', { indicador_id: SESSION.userId }).then(({data})=>{
     document.getElementById('cli-total-indicados').textContent = data || 0;
@@ -1717,7 +1813,9 @@ function renderClienteVeiculosList(){
       revisaoHtml = `<div class="small" style="margin-top:8px;">Próxima revisão preventiva: <strong style="color:${cor}">${infoRev.proximaBR} (${label})</strong></div>
         <button class="btn ghost" style="width:auto;margin-top:6px;padding:6px 12px;font-size:11px;" onclick="registrarRevisaoHoje('${v.placa}')">Revisei hoje</button>`;
     }
-    return `<div class="card"><h3>${v.modelo}</h3><div class="small">Placa ${v.placa}${v.ano? ' • '+v.ano : ''}</div>${oleoHtml}${revisaoHtml}</div>`;
+    return `<div class="card"><h3>${v.modelo}</h3><div class="small">Placa ${v.placa}${v.ano? ' • '+v.ano : ''}</div>${oleoHtml}${revisaoHtml}
+      <button class="btn ghost" style="width:auto;margin-top:10px;padding:6px 12px;font-size:11px;" onclick="abrirHistoricoVeiculo('${v.placa}','${v.modelo.replace(/'/g,'')}')">📋 Ver histórico</button>
+    </div>`;
   }).join('');
 }
 
@@ -1783,6 +1881,9 @@ function renderClienteOrcamentos(){
       <div class="small">${o.descricao}</div>
       ${o.desconto_indicacao ? `<div class="small" style="color:var(--gold);font-weight:700;margin-top:4px">🎁 Cupom de indicação aplicado (12% na mão de obra)</div>` : ''}
       ${o.valor ? `<div style="margin-top:8px;color:var(--gold);font-weight:800;">R$ ${Number(o.valor).toFixed(2)}</div>` : ''}
+      ${o.pago ? `<div class="small" style="color:var(--ok);font-weight:700;margin-top:4px">✅ Pagamento confirmado em ${new Date(o.pago_em).toLocaleDateString('pt-BR')}</div>` : ''}
+      ${o.status==='Enviado' ? `<button class="btn secondary" style="margin-top:10px" onclick="abrirAprovacaoOrcamento('${o.id}')">Aprovar orçamento</button>` : ''}
+      ${o.status==='Aprovado' ? `<button class="btn ghost" style="margin-top:10px" onclick="abrirPagamentoOrcamento('${o.id}')">💳 Ver forma de pagamento</button>` : ''}
     </div>
   `).join('');
 }
@@ -1804,16 +1905,6 @@ function renderClienteStatus(){
       const existente = (DB.avaliacoes||[]).find(av => av.agendamento_id===a.id);
       if(existente){
         avaliacaoHtml = `<div class="rate-readonly">Você avaliou: <span class="stars-fixed">${estrelasFixas(existente.nota)}</span>${existente.comentario?`<br>"${existente.comentario}"`:''}</div>`;
-      } else {
-        avaliacaoHtml = `
-          <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;">
-            <div class="small" style="margin-bottom:2px">Como foi esse serviço?</div>
-            <div class="rate-stars" id="rate-${a.id}" data-nota="0">
-              ${[1,2,3,4,5].map(n=>`<span data-n="${n}" onclick="selecionarNota('${a.id}',${n})">★</span>`).join('')}
-            </div>
-            <textarea id="coment-${a.id}" placeholder="Conte como foi (opcional)" style="min-height:56px;"></textarea>
-            <button class="btn secondary" style="margin-top:8px;" onclick="enviarAvaliacao('${a.id}','${a.veiculo}','${a.servico}')">Enviar avaliação</button>
-          </div>`;
       }
     }
 
@@ -1828,6 +1919,304 @@ function renderClienteStatus(){
       ${avaliacaoHtml}
     </div>`;
   }).join('');
+}
+
+/* ---------------- AVALIAÇÃO AUTOMÁTICA (modal ao abrir o app) ---------------- */
+let MODAL_AVAL_AGENDAMENTO = null;
+
+function verificarAvaliacaoPendente(){
+  const pendente = DB.agendamentos
+    .filter(a => a.cliente_id===SESSION.userId && (a.status==='Finalizado' || a.status==='Pronto para retirada'))
+    .find(a => !(DB.avaliacoes||[]).some(av => av.agendamento_id===a.id));
+  if(!pendente) return;
+  MODAL_AVAL_AGENDAMENTO = pendente;
+  document.getElementById('modal-aval-info').textContent = `${pendente.servico} — ${pendente.veiculo}`;
+  document.getElementById('modal-rate-stars').dataset.nota = 0;
+  document.querySelectorAll('#modal-rate-stars span').forEach(s=>s.classList.remove('active'));
+  document.getElementById('modal-aval-comentario').value = '';
+  document.getElementById('modal-avaliacao').classList.remove('hide');
+}
+function modalSelecionarNota(nota){
+  const el = document.getElementById('modal-rate-stars');
+  el.dataset.nota = nota;
+  el.querySelectorAll('span').forEach(s=>{
+    s.classList.toggle('active', Number(s.dataset.n) <= nota);
+  });
+}
+async function modalEnviarAvaliacao(){
+  const nota = Number(document.getElementById('modal-rate-stars').dataset.nota);
+  if(!nota){ toast('Toque nas estrelas para dar uma nota'); return; }
+  const comentario = document.getElementById('modal-aval-comentario').value.trim();
+  const a = MODAL_AVAL_AGENDAMENTO;
+  const { error } = await supabaseClient.from('avaliacoes').insert({
+    agendamento_id: a.id, cliente_id: SESSION.userId, fone:SESSION.fone,
+    veiculo: a.veiculo, servico: a.servico, nota, comentario, nome_cliente: (SESSION.nome||'').split(' ')[0]
+  });
+  if(error){ toast('Erro ao enviar avaliação: '+error.message); return; }
+  toast('Obrigado pela avaliação!');
+  fecharModalAvaliacao();
+}
+function fecharModalAvaliacao(){
+  document.getElementById('modal-avaliacao').classList.add('hide');
+  MODAL_AVAL_AGENDAMENTO = null;
+}
+
+/* ---------------- HISTÓRICO DO VEÍCULO ---------------- */
+function abrirHistoricoVeiculo(placa, modelo){
+  document.getElementById('historico-titulo').textContent = `Histórico — ${modelo} (${placa})`;
+  const itens = [];
+
+  DB.agendamentos
+    .filter(a => a.veiculo===placa && (a.status==='Finalizado' || a.status==='Pronto para retirada'))
+    .forEach(a => itens.push({ data: a.data, tipo: 'Agendamento', servico: a.servico, extra: a.obs }));
+
+  (DB.ordens_servico||[])
+    .filter(os => os.veiculo && os.veiculo.includes(placa))
+    .forEach(os => itens.push({ data: os.criado_em.slice(0,10), tipo: `OS #${os.numero}`, servico: os.descricao, extra: os.valor ? `R$ ${Number(os.valor).toFixed(2)}` : null, status: os.status }));
+
+  itens.sort((a,b) => (a.data < b.data ? 1 : -1));
+
+  const el = document.getElementById('historico-lista');
+  if(!itens.length){ el.innerHTML = '<div class="empty">Nenhum histórico registrado ainda para este veículo.</div>'; }
+  else {
+    el.innerHTML = itens.map(it => `
+      <div class="card" style="padding:12px 14px;margin-bottom:8px;">
+        <div class="row1">
+          <strong style="font-size:12.5px;color:var(--gold)">${it.tipo}</strong>
+          <span class="small">${it.data.split('-').reverse().join('/')}</span>
+        </div>
+        <div class="small" style="margin-top:4px">${it.servico}</div>
+        ${it.extra ? `<div class="small" style="margin-top:2px;color:var(--grey)">${it.extra}</div>` : ''}
+        ${it.status ? `<div class="small" style="margin-top:2px;color:var(--grey)">Status: ${it.status}</div>` : ''}
+      </div>`).join('');
+  }
+  document.getElementById('modal-historico').classList.remove('hide');
+}
+function fecharModalHistorico(){
+  document.getElementById('modal-historico').classList.add('hide');
+}
+
+/* ---------------- ASSINATURA DIGITAL ---------------- */
+let ASSINATURA_OS_ID = null;
+let assinaturaDesenhando = false;
+let assinaturaCtx = null;
+
+function abrirModalAssinatura(osId){
+  ASSINATURA_OS_ID = osId;
+  document.getElementById('modal-assinatura').classList.remove('hide');
+  const canvas = document.getElementById('canvas-assinatura');
+  assinaturaCtx = canvas.getContext('2d');
+  assinaturaCtx.clearRect(0,0,canvas.width,canvas.height);
+  assinaturaCtx.lineWidth = 2.4;
+  assinaturaCtx.lineCap = 'round';
+  assinaturaCtx.strokeStyle = '#111';
+
+  const pegarPos = (e)=>{
+    const rect = canvas.getBoundingClientRect();
+    const escalaX = canvas.width / rect.width;
+    const escalaY = canvas.height / rect.height;
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return { x: cx*escalaX, y: cy*escalaY };
+  };
+  const iniciar = (e)=>{ e.preventDefault(); assinaturaDesenhando = true; const p = pegarPos(e); assinaturaCtx.beginPath(); assinaturaCtx.moveTo(p.x,p.y); };
+  const desenhar = (e)=>{ if(!assinaturaDesenhando) return; e.preventDefault(); const p = pegarPos(e); assinaturaCtx.lineTo(p.x,p.y); assinaturaCtx.stroke(); };
+  const parar = ()=>{ assinaturaDesenhando = false; };
+
+  canvas.onmousedown = iniciar; canvas.onmousemove = desenhar; canvas.onmouseup = parar; canvas.onmouseleave = parar;
+  canvas.ontouchstart = iniciar; canvas.ontouchmove = desenhar; canvas.ontouchend = parar;
+}
+function limparAssinatura(){
+  const canvas = document.getElementById('canvas-assinatura');
+  assinaturaCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+async function salvarAssinatura(){
+  const canvas = document.getElementById('canvas-assinatura');
+  const dataUrl = canvas.toDataURL('image/png');
+  const { error } = await supabaseClient.from('ordens_servico').update({ assinatura: dataUrl }).eq('id', ASSINATURA_OS_ID);
+  if(error){ toast('Erro ao salvar assinatura: '+error.message); return; }
+  toast('Assinatura salva');
+  fecharModalAssinatura();
+}
+function fecharModalAssinatura(){
+  document.getElementById('modal-assinatura').classList.add('hide');
+  ASSINATURA_OS_ID = null;
+}
+
+/* ---------------- CPF: máscara e validação ---------------- */
+function formatarCPF(el){
+  let v = el.value.replace(/\D/g,'').slice(0,11);
+  v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  el.value = v;
+}
+function validarCPF(cpf){
+  cpf = (cpf||'').replace(/\D/g,'');
+  if(cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  let soma = 0;
+  for(let i=0;i<9;i++) soma += Number(cpf[i]) * (10-i);
+  let resto = (soma*10) % 11; if(resto===10) resto=0;
+  if(resto !== Number(cpf[9])) return false;
+  soma = 0;
+  for(let i=0;i<10;i++) soma += Number(cpf[i]) * (11-i);
+  resto = (soma*10) % 11; if(resto===10) resto=0;
+  return resto === Number(cpf[10]);
+}
+
+/* ---------------- PIX: gerador de código "Copia e Cola" (BR Code) ----------------
+   Segue o padrão do Banco Central. Funciona assim que a chave PIX real da
+   oficina for configurada abaixo em PIX_CONFIG. Até lá, fica desativado
+   com segurança (não gera um código falso). */
+const PIX_CONFIG = {
+  chave: '5514991289148',       // telefone da chave PIX (Santander)
+  nome: 'CARLOS E F CAMARGO',   // Carlos Eduardo Franco de Camargo — abreviado para caber em 25 caracteres
+  cidade: 'JAU'                 // Jaú, SP
+};
+function pixConfigurado(){
+  return !!(PIX_CONFIG.chave && PIX_CONFIG.nome && PIX_CONFIG.cidade);
+}
+function crc16Pix(str){
+  let crc = 0xFFFF;
+  for(let c=0;c<str.length;c++){
+    crc ^= (str.charCodeAt(c) << 8);
+    for(let i=0;i<8;i++){
+      crc = (crc & 0x8000) ? ((crc<<1) ^ 0x1021) : (crc<<1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4,'0');
+}
+function campoPix(id, valor){
+  return id + String(valor.length).padStart(2,'0') + valor;
+}
+function gerarPayloadPix(valor, txid){
+  const { chave, nome, cidade } = PIX_CONFIG;
+  const merchantInfo = campoPix('00','br.gov.bcb.pix') + campoPix('01', chave);
+  let payload =
+    campoPix('00','01') +
+    campoPix('26', merchantInfo) +
+    campoPix('52','0000') +
+    campoPix('53','986') +
+    campoPix('54', Number(valor).toFixed(2)) +
+    campoPix('58','BR') +
+    campoPix('59', nome.slice(0,25)) +
+    campoPix('60', cidade.slice(0,15)) +
+    campoPix('62', campoPix('05', (txid||'***').slice(0,25))) +
+    '6304';
+  return payload + crc16Pix(payload);
+}
+function copiarCodigoPix(){
+  const el = document.getElementById('pix-codigo-texto');
+  navigator.clipboard.writeText(el.textContent).then(()=>toast('Código PIX copiado!'));
+}
+
+/* ---------------- Aprovação de orçamento (cliente) ---------------- */
+let ORC_APROVACAO_ID = null;
+let assinaturaOrcCtx = null;
+
+function abrirAprovacaoOrcamento(id){
+  const o = DB.orcamentos.find(x=>x.id===id);
+  if(!o) return;
+  ORC_APROVACAO_ID = id;
+  document.getElementById('aprovar-orc-resumo').innerHTML =
+    `<strong>${o.veiculo}</strong><br>${o.descricao}<br><span style="color:var(--gold);font-weight:800;font-size:16px">R$ ${Number(o.valor).toFixed(2)}</span>`;
+
+  const c = DB.clientes[SESSION.userId];
+  const cpfInput = document.getElementById('aprovar-orc-cpf');
+  cpfInput.value = (c && c.cpf) || '';
+  document.getElementById('aprovar-orc-consent').checked = false;
+
+  const canvas = document.getElementById('canvas-assinatura-orcamento');
+  assinaturaOrcCtx = canvas.getContext('2d');
+  assinaturaOrcCtx.clearRect(0,0,canvas.width,canvas.height);
+  assinaturaOrcCtx.lineWidth = 2.4;
+  assinaturaOrcCtx.lineCap = 'round';
+  assinaturaOrcCtx.strokeStyle = '#111';
+
+  let desenhando = false;
+  const pegarPos = (e)=>{
+    const rect = canvas.getBoundingClientRect();
+    const escalaX = canvas.width / rect.width;
+    const escalaY = canvas.height / rect.height;
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return { x: cx*escalaX, y: cy*escalaY };
+  };
+  const iniciar = (e)=>{ e.preventDefault(); desenhando = true; const p = pegarPos(e); assinaturaOrcCtx.beginPath(); assinaturaOrcCtx.moveTo(p.x,p.y); };
+  const desenhar = (e)=>{ if(!desenhando) return; e.preventDefault(); const p = pegarPos(e); assinaturaOrcCtx.lineTo(p.x,p.y); assinaturaOrcCtx.stroke(); };
+  const parar = ()=>{ desenhando = false; };
+  canvas.onmousedown = iniciar; canvas.onmousemove = desenhar; canvas.onmouseup = parar; canvas.onmouseleave = parar;
+  canvas.ontouchstart = iniciar; canvas.ontouchmove = desenhar; canvas.ontouchend = parar;
+
+  document.getElementById('modal-aprovar-orcamento').classList.remove('hide');
+}
+function limparAssinaturaOrcamento(){
+  const canvas = document.getElementById('canvas-assinatura-orcamento');
+  assinaturaOrcCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+function fecharModalAprovacaoOrcamento(){
+  document.getElementById('modal-aprovar-orcamento').classList.add('hide');
+  ORC_APROVACAO_ID = null;
+}
+async function confirmarAprovacaoOrcamento(){
+  const cpf = document.getElementById('aprovar-orc-cpf').value;
+  if(!validarCPF(cpf)){ toast('CPF inválido — confira os números digitados'); return; }
+  if(!document.getElementById('aprovar-orc-consent').checked){ toast('Marque que está de acordo com o valor'); return; }
+
+  const canvas = document.getElementById('canvas-assinatura-orcamento');
+  const assinaturaDataUrl = canvas.toDataURL('image/png');
+  // Verifica se algo foi realmente desenhado (canvas em branco gera sempre o mesmo tamanho pequeno)
+  const pixelsEmBranco = assinaturaDataUrl.length < 1500;
+  if(pixelsEmBranco){ toast('Assine no campo indicado antes de confirmar'); return; }
+
+  const id = ORC_APROVACAO_ID;
+  const { error } = await supabaseClient.from('orcamentos').update({
+    status: 'Aprovado',
+    cpf_cliente: cpf,
+    assinatura_aprovacao: assinaturaDataUrl
+  }).eq('id', id);
+
+  if(error){ toast('Erro ao aprovar: ' + error.message); return; }
+
+  await supabaseClient.from('clientes').update({ cpf }).eq('id', SESSION.userId);
+
+  toast('Orçamento aprovado!');
+  fecharModalAprovacaoOrcamento();
+  await fetchTudo();
+  abrirPagamentoOrcamento(id);
+}
+
+/* ---------------- Pagamento do orçamento aprovado (cliente) ---------------- */
+function abrirPagamentoOrcamento(id){
+  const o = DB.orcamentos.find(x=>x.id===id);
+  if(!o) return;
+  const temCupom = !!o.desconto_indicacao;
+  const valorPix = temCupom ? Number(o.valor) : +(Number(o.valor) * 0.95).toFixed(2);
+
+  document.getElementById('pagamento-orc-resumo').innerHTML =
+    `<strong>${o.veiculo}</strong><br>${o.descricao}<br><span style="color:var(--gold);font-weight:800;font-size:16px">R$ ${Number(o.valor).toFixed(2)}</span>`;
+
+  const area = document.getElementById('pagamento-pix-area');
+  if(!pixConfigurado()){
+    area.innerHTML = `<div class="small" style="color:var(--grey)">A oficina ainda está configurando o recebimento via PIX. Em breve os dados de pagamento aparecerão aqui automaticamente.</div>`;
+  } else {
+    const codigo = gerarPayloadPix(valorPix, 'ORC'+o.id.slice(0,8));
+    const avisoDesconto = temCupom
+      ? `<div class="small" style="color:var(--grey);margin-bottom:8px">Valor já inclui o desconto do cupom de indicação.</div>`
+      : `<div class="small" style="color:var(--gold);font-weight:700;margin-bottom:8px">🎉 5% de desconto por pagar via PIX: R$ ${Number(o.valor).toFixed(2)} → <strong>R$ ${valorPix.toFixed(2)}</strong></div>`;
+    area.innerHTML = `
+      <label style="margin-bottom:4px">Pague com PIX (Copia e Cola)</label>
+      ${avisoDesconto}
+      <div id="pix-qrcode-box" style="background:#fff;padding:10px;border-radius:8px;display:flex;justify-content:center;margin-bottom:10px"></div>
+      <div id="pix-codigo-texto" style="font-size:11px;word-break:break-all;background:var(--surface);padding:10px;border-radius:8px;border:1px solid var(--line)">${codigo}</div>
+      <button class="btn secondary" style="margin-top:8px" onclick="copiarCodigoPix()">Copiar código PIX</button>
+    `;
+    document.getElementById('pix-qrcode-box').innerHTML = '';
+    new QRCode(document.getElementById('pix-qrcode-box'), { text: codigo, width:180, height:180 });
+  }
+  document.getElementById('modal-pagamento-orcamento').classList.remove('hide');
+}
+function fecharModalPagamentoOrcamento(){
+  document.getElementById('modal-pagamento-orcamento').classList.add('hide');
 }
 
 function selecionarNota(agendamentoId, nota){
@@ -2027,6 +2416,8 @@ function renderEqOS(){
       ${os.valor ? `<div style="margin-top:6px;color:var(--gold);font-weight:800;">R$ ${Number(os.valor).toFixed(2)}</div>` : ''}
       <div class="small" style="margin-top:6px;color:var(--grey)">Criada em ${new Date(os.criado_em).toLocaleDateString('pt-BR')} por ${os.criado_por_nome||'Equipe'}</div>
 
+      ${os.assinatura ? `<div class="small" style="margin-top:8px;color:var(--grey)">Assinatura registrada:</div><img src="${os.assinatura}" style="max-width:160px;background:#fff;border-radius:6px;margin-top:4px;border:1px solid var(--line)">` : ''}
+
       <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
         <select id="os-status-${os.id}" onchange="atualizarStatusOS('${os.id}', this.value)" style="flex:1">
           <option value="Aberta" ${os.status==='Aberta'?'selected':''}>Aberta</option>
@@ -2034,7 +2425,8 @@ function renderEqOS(){
           <option value="Concluída" ${os.status==='Concluída'?'selected':''}>Concluída</option>
           <option value="Cancelada" ${os.status==='Cancelada'?'selected':''}>Cancelada</option>
         </select>
-        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="imprimirOS('${os.id}')" title="Imprimir">🖨️ Imprimir</button>
+        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="imprimirOS('${os.id}')" title="Imprimir">🖨️</button>
+        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="abrirModalAssinatura('${os.id}')" title="Assinatura">✍️</button>
       </div>
     </div>`;
   }).join('');
@@ -2083,7 +2475,10 @@ function imprimirOS(id){
       ${os.valor ? `<div class="linha"><div class="label">Valor</div><div class="valor">R$ ${Number(os.valor).toFixed(2)}</div></div>` : ''}
       <div class="linha"><div class="label">Status</div><div class="valor">${os.status}</div></div>
       <div class="rodape">
-        <div class="assinatura">Assinatura do cliente</div>
+        <div class="assinatura">
+          ${os.assinatura ? `<img src="${os.assinatura}" style="max-width:200px;max-height:80px;display:block;margin:0 auto 4px;">` : '<div style="height:60px"></div>'}
+          Assinatura do cliente
+        </div>
         <div class="assinatura">Zago Auto Service</div>
       </div>
     </body>
@@ -2255,6 +2650,7 @@ function renderEqOrcamentos(){
       </div>
       <div class="small">${o.veiculo}</div>
       ${o.desconto_indicacao ? `<div class="small" style="color:var(--gold);font-weight:700;margin-top:4px">🎁 Cliente tem cupom de indicação — 12% de desconto na mão de obra será aplicado automaticamente</div>` : ''}
+      ${o.pago ? `<div class="small" style="color:var(--ok);font-weight:700;margin-top:4px">✅ Pago em ${new Date(o.pago_em).toLocaleDateString('pt-BR')}</div>` : ''}
       <label style="margin-bottom:0;margin-top:8px">Descrição do serviço</label>
       <textarea id="desc-${o.id}" style="min-height:70px">${descAtual.replace(/</g,'&lt;')}</textarea>
       <label style="margin-bottom:0">Valor da mão de obra (R$)</label>
@@ -2265,6 +2661,7 @@ function renderEqOrcamentos(){
         <button class="btn" style="margin:0" onclick="enviarOrcamentoWhatsApp('${o.id}')">Enviar via WhatsApp</button>
       </div>
       <button class="btn ghost" style="margin-top:8px" onclick="gerarOSDeOrcamento('${o.id}')">📋 Gerar Ordem de Serviço</button>
+      ${o.status==='Aprovado' && !o.pago ? `<button class="btn secondary" style="margin-top:8px;background:var(--ok);border-color:var(--ok)" onclick="marcarOrcamentoPago('${o.id}')">✅ Marcar como pago</button>` : ''}
     </div>`;
   }).join('');
   list.forEach(o=>{ if(digitados[o.id]?.val !== undefined) atualizarPreviaDesconto(o.id, o.desconto_indicacao); });
@@ -2278,6 +2675,14 @@ function calcularValorFinalOrcamento(id){
   return { valDigitado, temDesconto, valorFinal };
 }
 
+async function marcarOrcamentoPago(id){
+  const { error } = await supabaseClient.from('orcamentos').update({ pago: true, pago_em: new Date().toISOString() }).eq('id', id);
+  if(error){ toast('Erro ao marcar como pago: '+error.message); return; }
+  toast('Orçamento marcado como pago!');
+  const orc = DB.orcamentos.find(o=>o.id===id);
+  const clienteNome = orc ? (DB.clientes[orc.cliente_id]?.nome || '') : '';
+  registrarLog('Orçamento marcado como pago', `${clienteNome ? clienteNome+' — ' : ''}R$ ${Number(orc?.valor||0).toFixed(2)}`);
+}
 async function salvarOrcamento(id){
   const descricao = document.getElementById('desc-'+id).value.trim();
   const { valDigitado, temDesconto, valorFinal } = calcularValorFinalOrcamento(id);
@@ -2630,7 +3035,106 @@ function renderQR(){
   } catch (e) {
     console.error('Erro ao navegar automaticamente:', e);
   }
+
+  try {
+    // Detecta retorno do login com Google (supabase-js já processa o token da URL sozinho)
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if(session && !SESSION.role){
+      const { data: perfil } = await supabaseClient.from('profiles').select('role').eq('id', session.user.id).single();
+      if(!perfil || perfil.role !== 'equipe'){
+        await continuarComoClienteAposGoogle(session.user);
+      }
+    }
+  } catch (e) {
+    console.error('Erro ao restaurar sessão do Google:', e);
+  }
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(e => console.error('Erro ao registrar service worker:', e));
+  }
 })();
 </script>
+
+<!-- ============ MODAL: Avaliação automática ============ -->
+<div id="modal-avaliacao" class="modal-overlay hide">
+  <div class="modal-box">
+    <h3>Como foi o seu último serviço?</h3>
+    <p class="sub" style="margin-top:0" id="modal-aval-info"></p>
+    <div class="rate-stars" id="modal-rate-stars" data-nota="0">
+      <span data-n="1" onclick="modalSelecionarNota(1)">★</span>
+      <span data-n="2" onclick="modalSelecionarNota(2)">★</span>
+      <span data-n="3" onclick="modalSelecionarNota(3)">★</span>
+      <span data-n="4" onclick="modalSelecionarNota(4)">★</span>
+      <span data-n="5" onclick="modalSelecionarNota(5)">★</span>
+    </div>
+    <textarea id="modal-aval-comentario" placeholder="Conte como foi (opcional)" style="min-height:56px;"></textarea>
+    <button class="btn secondary" style="margin-top:10px" onclick="modalEnviarAvaliacao()">Enviar avaliação</button>
+    <span class="modal-close-link" onclick="fecharModalAvaliacao()">Agora não</span>
+  </div>
+</div>
+
+<!-- ============ MODAL: Histórico do veículo ============ -->
+<div id="modal-historico" class="modal-overlay hide">
+  <div class="modal-box">
+    <h3 id="historico-titulo">Histórico do veículo</h3>
+    <div id="historico-lista" style="margin-top:10px"></div>
+    <span class="modal-close-link" onclick="fecharModalHistorico()">Fechar</span>
+  </div>
+</div>
+
+<!-- ============ MODAL: Assinatura digital ============ -->
+<div id="modal-assinatura" class="modal-overlay hide">
+  <div class="modal-box">
+    <h3>Assinatura do cliente</h3>
+    <p class="sub" style="margin-top:0">Peça para o cliente assinar com o dedo (celular/tablet) ou mouse.</p>
+    <canvas id="canvas-assinatura" width="360" height="180" style="background:#fff;border-radius:8px;width:100%;touch-action:none;"></canvas>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn ghost" style="margin:0" onclick="limparAssinatura()">Limpar</button>
+      <button class="btn secondary" style="margin:0" onclick="salvarAssinatura()">Salvar assinatura</button>
+    </div>
+    <span class="modal-close-link" onclick="fecharModalAssinatura()">Cancelar</span>
+  </div>
+</div>
+
+<!-- ============ MODAL: Aprovar orçamento (cliente) ============ -->
+<div id="modal-aprovar-orcamento" class="modal-overlay hide">
+  <div class="modal-box">
+    <h3>Aprovar orçamento</h3>
+    <p class="sub" style="margin-top:0">Confira o valor e assine para confirmar que está de acordo.</p>
+    <div id="aprovar-orc-resumo" class="wizresumo" style="margin-top:0"></div>
+
+    <label style="margin-top:14px">CPF</label>
+    <input id="aprovar-orc-cpf" placeholder="000.000.000-00" inputmode="numeric" oninput="formatarCPF(this)">
+
+    <label style="margin-top:14px">Assinatura</label>
+    <canvas id="canvas-assinatura-orcamento" width="360" height="180" style="background:#fff;border-radius:8px;width:100%;touch-action:none;"></canvas>
+    <button class="btn ghost" style="margin-top:8px" onclick="limparAssinaturaOrcamento()">Limpar assinatura</button>
+
+    <label class="check-consent" style="margin-top:14px">
+      <input type="checkbox" id="aprovar-orc-consent">
+      <span>Li o valor acima e estou de acordo em aprovar este orçamento.</span>
+    </label>
+
+    <button class="btn secondary" style="margin-top:14px" onclick="confirmarAprovacaoOrcamento()">Aprovar e assinar</button>
+    <span class="modal-close-link" onclick="fecharModalAprovacaoOrcamento()">Cancelar</span>
+  </div>
+</div>
+
+<!-- ============ MODAL: Pagamento do orçamento aprovado (cliente) ============ -->
+<div id="modal-pagamento-orcamento" class="modal-overlay hide">
+  <div class="modal-box">
+    <h3>Forma de pagamento</h3>
+    <div id="pagamento-orc-resumo" class="wizresumo" style="margin-top:0"></div>
+
+    <div id="pagamento-pix-area" style="margin-top:16px"></div>
+
+    <div style="margin-top:16px">
+      <button class="btn ghost" disabled style="opacity:.5;cursor:not-allowed" title="Em breve">💳 Parcelar no cartão (em breve)</button>
+    </div>
+
+    <span class="modal-close-link" onclick="fecharModalPagamentoOrcamento()">Fechar</span>
+  </div>
+</div>
+
 </body>
 </html>
