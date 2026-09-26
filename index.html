@@ -3136,5 +3136,52 @@ function renderQR(){
   </div>
 </div>
 
+<button id="btn-instalar-app" style="
+  display:none;
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:9999;
+  background:#f4c430;
+  color:#000;
+  font-weight:bold;
+  font-size:16px;
+  padding:14px 28px;
+  border:none;
+  border-radius:30px;
+  box-shadow:0 4px 12px rgba(0,0,0,.4);
+  cursor:pointer;
+">
+  📲 Instalar App
+</button>
+
+<script>
+  let deferredInstallPrompt = null;
+  const btnInstalar = document.getElementById('btn-instalar-app');
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    btnInstalar.style.display = 'block';
+  });
+
+  btnInstalar.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    console.log('Resultado da instalação:', outcome);
+    deferredInstallPrompt = null;
+    btnInstalar.style.display = 'none';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    btnInstalar.style.display = 'none';
+  });
+
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    btnInstalar.style.display = 'none';
+  }
+</script>
 </body>
 </html>
