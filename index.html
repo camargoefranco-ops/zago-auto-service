@@ -3050,7 +3050,7 @@ function renderQR(){
   }
 
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('sw.js').catch(e => console.error('Erro ao registrar service worker:', e));
+    navigator.serviceWorker.register('service-worker.js').catch(e => console.error('Erro ao registrar service worker:', e));
   }
 })();
 </script>
