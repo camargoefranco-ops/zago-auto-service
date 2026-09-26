@@ -2590,8 +2590,19 @@ function renderEqAgenda(){
       <div class="small">${a.data} ${a.hora}${a.obs ? ' • '+a.obs : ''}</div>
       <label style="margin-bottom:0">Atualizar status</label>
       <select onchange="atualizarStatusAgendamento('${a.id}', this.value)">${opts}</select>
+      <button class="btn ghost" style="margin-top:8px;color:var(--danger);border-color:var(--danger)" onclick="excluirAgendamento('${a.id}')">🗑️ Excluir agendamento</button>
     </div>`;
   }).join('');
+}
+async function excluirAgendamento(id){
+  const a = DB.agendamentos.find(x=>x.id===id);
+  const cliente = a ? DB.clientes[a.cliente_id] : null;
+  const nomeExibicao = cliente ? cliente.nome : (a ? a.fone : '');
+  if(!confirm(`Excluir o agendamento de ${nomeExibicao} (${a ? a.servico : ''})? Essa ação não pode ser desfeita.`)) return;
+  const { error } = await supabaseClient.from('agendamentos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir: '+error.message); return; }
+  toast('Agendamento excluído');
+  registrarLog('Agendamento excluído', `${nomeExibicao} — ${a ? a.servico : ''}`);
 }
 async function atualizarStatusAgendamento(id, status){
   const { error } = await supabaseClient.from('agendamentos').update({ status }).eq('id', id);
@@ -3050,7 +3061,7 @@ function renderQR(){
   }
 
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('service-worker.js').catch(e => console.error('Erro ao registrar service worker:', e));
+    navigator.serviceWorker.register('sw.js').catch(e => console.error('Erro ao registrar service worker:', e));
   }
 })();
 </script>
@@ -3136,52 +3147,5 @@ function renderQR(){
   </div>
 </div>
 
-<button id="btn-instalar-app" style="
-  display:none;
-  position:fixed;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:9999;
-  background:#f4c430;
-  color:#000;
-  font-weight:bold;
-  font-size:16px;
-  padding:14px 28px;
-  border:none;
-  border-radius:30px;
-  box-shadow:0 4px 12px rgba(0,0,0,.4);
-  cursor:pointer;
-">
-  📲 Instalar App
-</button>
-
-<script>
-  let deferredInstallPrompt = null;
-  const btnInstalar = document.getElementById('btn-instalar-app');
-
-  window.addEventListener('beforeinstallprompt', (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    btnInstalar.style.display = 'block';
-  });
-
-  btnInstalar.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    const { outcome } = await deferredInstallPrompt.userChoice;
-    console.log('Resultado da instalação:', outcome);
-    deferredInstallPrompt = null;
-    btnInstalar.style.display = 'none';
-  });
-
-  window.addEventListener('appinstalled', () => {
-    btnInstalar.style.display = 'none';
-  });
-
-  if (window.matchMedia('(display-mode: standalone)').matches) {
-    btnInstalar.style.display = 'none';
-  }
-</script>
 </body>
 </html>
