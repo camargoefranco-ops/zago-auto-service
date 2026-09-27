@@ -2732,7 +2732,8 @@ async function enviarOrcamentoWhatsApp(id){
   } else {
     msg += `💰 Valor: R$ ${valorFinal.toFixed(2)}\n`;
   }
-  msg += `\nQualquer dúvida, estamos à disposição!`;
+  msg += `\n👉 Para aprovar e assinar digitalmente, abra o app:\nhttps://camargoefranco-ops.github.io/zago-auto-service/\n`;
+msg += `\nQualquer dúvida, estamos à disposição!`;
 
   window.open('https://wa.me/'+foneComDDI+'?text='+encodeURIComponent(msg), '_blank');
 
