@@ -2604,6 +2604,16 @@ async function excluirAgendamento(id){
   toast('Agendamento excluído');
   registrarLog('Agendamento excluído', `${nomeExibicao} — ${a ? a.servico : ''}`);
 }
+  async function excluirOrcamento(id){
+  const o = DB.orcamentos.find(x=>x.id===id);
+  const cliente = o ? DB.clientes[o.cliente_id] : null;
+  const nomeExibicao = cliente ? cliente.nome : (o ? o.fone : '');
+  if(!confirm(`Excluir o orçamento de ${nomeExibicao} (${o ? o.descricao : ''})? Essa ação não pode ser desfeita.`)) return;
+  const { error } = await supabaseClient.from('orcamentos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir: '+error.message); return; }
+  toast('Orçamento excluído');
+  registrarLog('Orçamento excluído', `${nomeExibicao} — ${o ? o.descricao : ''}`);
+}
 async function atualizarStatusAgendamento(id, status){
   const { error } = await supabaseClient.from('agendamentos').update({ status }).eq('id', id);
   if(error){ toast('Erro ao atualizar: '+error.message); return; }
@@ -2659,24 +2669,14 @@ function renderEqOrcamentos(){
         <h3>${cliente ? cliente.nome : o.fone}</h3>
         <span class="badge ${o.status==='Aprovado'?'finalizado':o.status==='Enviado'?'execucao':'recebido'}">${o.status}</span>
       </div>
-      <div class="small">${o.veiculo}</div>
-      ${o.desconto_indicacao ? `<div class="small" style="color:var(--gold);font-weight:700;margin-top:4px">🎁 Cliente tem cupom de indicação — 12% de desconto na mão de obra será aplicado automaticamente</div>` : ''}
-      ${o.pago ? `<div class="small" style="color:var(--ok);font-weight:700;margin-top:4px">✅ Pago em ${new Date(o.pago_em).toLocaleDateString('pt-BR')}</div>` : ''}
-      <label style="margin-bottom:0;margin-top:8px">Descrição do serviço</label>
-      <textarea id="desc-${o.id}" style="min-height:70px">${descAtual.replace(/</g,'&lt;')}</textarea>
-      <label style="margin-bottom:0">Valor da mão de obra (R$)</label>
-      <input type="number" id="val-${o.id}" value="${valAtual}" placeholder="0.00" oninput="atualizarPreviaDesconto('${o.id}', ${o.desconto_indicacao ? 'true':'false'})">
-      <div class="small" id="previa-desconto-${o.id}" style="margin-top:4px;color:var(--gold)"></div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn secondary" style="margin:0" onclick="salvarOrcamento('${o.id}')">Salvar</button>
-        <button class="btn" style="margin:0" onclick="enviarOrcamentoWhatsApp('${o.id}')">Enviar via WhatsApp</button>
-      </div>
-      <button class="btn ghost" style="margin-top:8px" onclick="gerarOSDeOrcamento('${o.id}')">📋 Gerar Ordem de Serviço</button>
+       <button class="btn ghost" style="margin-top:8px" onclick="gerarOSDeOrcamento('${o.id}')">📋 Gerar Ordem de Serviço</button>
       ${o.status==='Aprovado' && !o.pago ? `<button class="btn secondary" style="margin-top:8px;background:var(--ok);border-color:var(--ok)" onclick="marcarOrcamentoPago('${o.id}')">✅ Marcar como pago</button>` : ''}
+            <button class="btn ghost" style="margin-top:8px;color:var(--danger);border-color:var(--danger)" onclick="excluirOrcamento('${o.id}')">🗑️ Excluir orçamento</button>
+      <button class="btn ghost" style="margin-top:8px;color:var(--danger);border-color:var(--danger)" onclick="excluirOrcamento('${o.id}')">🗑️ Excluir orçamento</button>
     </div>`;
   }).join('');
-  list.forEach(o=>{ if(digitados[o.id]?.val !== undefined) atualizarPreviaDesconto(o.id, o.desconto_indicacao); });
-}
+  list.forEach(o=>{ if(digitados[o.id]?.val !== undefined) atualizarPreviaDesconto(o.id, o.desconto_indicacao); });}
+
 
 function calcularValorFinalOrcamento(id){
   const valDigitado = Number(document.getElementById('val-'+id).value);
