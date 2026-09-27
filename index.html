@@ -990,6 +990,7 @@ let DB = {
   ordens_servico: [] // {id, numero, cliente_id, orcamento_id, veiculo, descricao, valor, status, criado_por_nome, criado_em}
 };
 let SESSION = { role:null, userId:null, fone:null, nome:null };
+let ORC_DEEPLINK_ID = null; // id do orçamento vindo de um link (?orc=) do WhatsApp/n8n, a abrir assim que possível
 
 /* ---------------- BUSCA DE DADOS ---------------- */
 async function fetchClientes(){
@@ -1308,6 +1309,25 @@ async function entrarComoClienteLogado(userId, nome, fone){
   renderAlertaRevisao();
   verificarAvaliacaoPendente();
   go('cliente-dash');
+  abrirOrcamentoPendenteDeeplink();
+}
+
+// Se o cliente chegou por um link do tipo ?orc=ID (mensagem de WhatsApp/n8n),
+// abre automaticamente a tela certa: aprovação (se ainda não aprovado) ou
+// pagamento (se já aprovado e ainda não pago). Decide pelo status atual do
+// orçamento, e não por um parâmetro separado, pois o status pode ter mudado
+// entre o envio da mensagem e o clique do cliente no link.
+function abrirOrcamentoPendenteDeeplink(){
+  if(!ORC_DEEPLINK_ID) return;
+  const id = ORC_DEEPLINK_ID;
+  ORC_DEEPLINK_ID = null;
+  const o = (DB.orcamentos || []).find(x=>x.id===id);
+  if(!o) return;
+  if(o.status==='Aprovado' && !o.pago){
+    abrirPagamentoOrcamento(id);
+  } else if(o.status==='Enviado'){
+    abrirAprovacaoOrcamento(id);
+  }
 }
 
 function clienteSair(){
@@ -3055,7 +3075,14 @@ function renderQR(){
   }
 
   try {
-    if(window.location.hash === '#cliente'){
+    // Link de orçamento vindo de WhatsApp/n8n: https://.../?orc=ID
+    // Guarda o id para abrir a tela certa (aprovação ou pagamento) assim que
+    // a sessão do cliente estiver pronta — veja abrirOrcamentoPendenteDeeplink().
+    const paramsURL = new URLSearchParams(window.location.search);
+    const orcParam = paramsURL.get('orc');
+    if(orcParam){ ORC_DEEPLINK_ID = orcParam; }
+
+    if(window.location.hash === '#cliente' || orcParam){
       go('cliente-login');
     }
   } catch (e) {
