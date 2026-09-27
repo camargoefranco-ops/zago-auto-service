@@ -481,6 +481,8 @@
     <h2 class="title">Bem-vindo</h2>
     <p class="sub" style="margin-bottom:22px">Agende seu serviço ou peça um orçamento em poucos toques.</p>
 
+    <div class="statsbar" id="home-stats"></div>
+
     <button class="bigbtn" onclick="go('cliente-login')">
       <div class="ic">C</div>
       <div>
@@ -2669,13 +2671,25 @@ function renderEqOrcamentos(){
         <h3>${cliente ? cliente.nome : o.fone}</h3>
         <span class="badge ${o.status==='Aprovado'?'finalizado':o.status==='Enviado'?'execucao':'recebido'}">${o.status}</span>
       </div>
-       <button class="btn ghost" style="margin-top:8px" onclick="gerarOSDeOrcamento('${o.id}')">📋 Gerar Ordem de Serviço</button>
+      <div class="small">${o.veiculo}</div>
+      ${o.desconto_indicacao ? `<div class="small" style="color:var(--gold);font-weight:700;margin-top:4px">🎁 Cliente tem cupom de indicação — 12% de desconto na mão de obra será aplicado automaticamente</div>` : ''}
+      ${o.pago ? `<div class="small" style="color:var(--ok);font-weight:700;margin-top:4px">✅ Pago em ${new Date(o.pago_em).toLocaleDateString('pt-BR')}</div>` : ''}
+      <label style="margin-bottom:0;margin-top:8px">Descrição do serviço</label>
+      <textarea id="desc-${o.id}" style="min-height:70px">${descAtual.replace(/</g,'&lt;')}</textarea>
+      <label style="margin-bottom:0">Valor da mão de obra (R$)</label>
+      <input type="number" id="val-${o.id}" value="${valAtual}" placeholder="0.00" oninput="atualizarPreviaDesconto('${o.id}', ${o.desconto_indicacao ? 'true':'false'})">
+      <div class="small" id="previa-desconto-${o.id}" style="margin-top:4px;color:var(--gold)"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn secondary" style="margin:0" onclick="salvarOrcamento('${o.id}')">Salvar</button>
+        <button class="btn" style="margin:0" onclick="enviarOrcamentoWhatsApp('${o.id}')">Enviar via WhatsApp</button>
+      </div>
+      <button class="btn ghost" style="margin-top:8px" onclick="gerarOSDeOrcamento('${o.id}')">📋 Gerar Ordem de Serviço</button>
       ${o.status==='Aprovado' && !o.pago ? `<button class="btn secondary" style="margin-top:8px;background:var(--ok);border-color:var(--ok)" onclick="marcarOrcamentoPago('${o.id}')">✅ Marcar como pago</button>` : ''}
-            <button class="btn ghost" style="margin-top:8px;color:var(--danger);border-color:var(--danger)" onclick="excluirOrcamento('${o.id}')">🗑️ Excluir orçamento</button>
       <button class="btn ghost" style="margin-top:8px;color:var(--danger);border-color:var(--danger)" onclick="excluirOrcamento('${o.id}')">🗑️ Excluir orçamento</button>
     </div>`;
   }).join('');
-  list.forEach(o=>{ if(digitados[o.id]?.val !== undefined) atualizarPreviaDesconto(o.id, o.desconto_indicacao); });}
+  list.forEach(o=>{ if(digitados[o.id]?.val !== undefined) atualizarPreviaDesconto(o.id, o.desconto_indicacao); });
+}
 
 
 function calcularValorFinalOrcamento(id){
