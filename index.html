@@ -59,6 +59,9 @@
   /* ---- generic layout ---- */
   .screen{padding:18px 18px 10px;}
   .hide{display:none !important;}
+  #restaurando-msg{display:none;}
+  body.restaurando #restaurando-msg{display:block;}
+  body.restaurando .screen{display:none !important;}
   h2.title{font-size:19px;margin:2px 0 16px;font-weight:800;letter-spacing:.2px;}
   p.sub{color:var(--grey);font-size:13.5px;line-height:1.5;margin:-8px 0 18px;}
 
@@ -174,6 +177,7 @@
     border-bottom:2px solid transparent;
   }
   .tab.active{color:var(--gold);border-color:var(--gold);}
+  .tab svg{width:14px;height:14px;vertical-align:-2px;margin-right:5px;}
 
   .chipbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
   .chip{
@@ -481,10 +485,10 @@
     <h2 class="title">Bem-vindo</h2>
     <p class="sub" style="margin-bottom:22px">Agende seu serviço ou peça um orçamento em poucos toques.</p>
 
-    <div class="statsbar" id="home-stats"></div>
+    <button class="btn secondary btn-instalar hide" onclick="instalarApp()" style="margin-top:0;margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>Instalar app</button>
 
     <button class="bigbtn" onclick="go('cliente-login')">
-      <div class="ic">C</div>
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M19 8v6M16 11h6"/></svg></div>
       <div>
         Faça seu cadastro
         <div class="meta">Agendar, pedir orçamento, ver status</div>
@@ -514,13 +518,26 @@
     <div class="footer-info">
       <strong>Zago Auto Service</strong><br>
       R. Narciso Baldini, 480 — Jardim Bela Vista
+      <br><span id="app-versao" style="opacity:.45;font-size:10.5px"></span>
     </div>
   </div>
 
   <!-- ============ CLIENTE: LOGIN ============ -->
+  <p id="restaurando-msg" class="sub" style="text-align:center;margin-top:40px">Entrando…</p>
+
+  <!-- ============ BLOQUEIO POR BIOMETRIA ============ -->
+  <div id="screen-bloqueio" class="screen hide">
+    <h2 class="title" style="text-align:center">App bloqueado</h2>
+    <p class="sub" style="text-align:center">Use a biometria do aparelho para entrar.</p>
+    <button class="btn" onclick="desbloquearBiometria()">Entrar com biometria</button>
+    <button class="btn ghost" onclick="bloqueioUsarSenha()">Usar senha</button>
+  </div>
+
   <div id="screen-cliente-login" class="screen hide">
     <div class="topnav"><button class="backbtn" onclick="go('home')">‹ Voltar</button></div>
     <h2 class="title">Cadastro</h2>
+
+    <button class="btn secondary btn-instalar hide" onclick="instalarApp()" style="margin-top:0;margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>Instalar app</button>
 
     <button class="btn google-btn" onclick="loginComGoogle()">
       <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;margin-right:8px">
@@ -603,18 +620,18 @@
   </div>
 
   <div id="screen-cliente-dash" class="screen hide">
-    <div class="topnav"><button class="backbtn" onclick="clienteSair()">‹ Sair</button></div>
+    <div class="topnav" style="justify-content:space-between"><button class="backbtn" onclick="clienteSair()">‹ Sair</button><button class="backbtn bio-toggle hide" onclick="alternarBiometria()" style="font-size:12px"></button></div>
     <h2 class="title" id="cli-boasvindas">Olá!</h2>
     <div id="cli-alerta-oleo"></div>
     <div id="cli-alerta-revisao"></div>
 
     <div class="tabs">
-      <div class="tab active" data-tab="agendar" onclick="cliTab('agendar')">Agendar</div>
-      <div class="tab" data-tab="orcamento" onclick="cliTab('orcamento')">Orçamento</div>
-      <div class="tab" data-tab="status" onclick="cliTab('status')">Status</div>
-      <div class="tab" data-tab="veiculos" onclick="cliTab('veiculos')">Veículos</div>
-      <div class="tab" data-tab="trabalhos" onclick="cliTab('trabalhos')">Trabalhos</div>
-      <div class="tab" data-tab="indicar" onclick="cliTab('indicar')">Indicar</div>
+      <div class="tab active" data-tab="agendar" onclick="cliTab('agendar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agendar</div>
+      <div class="tab" data-tab="orcamento" onclick="cliTab('orcamento')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>Orçamento</div>
+      <div class="tab" data-tab="status" onclick="cliTab('status')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Status</div>
+      <div class="tab" data-tab="veiculos" onclick="cliTab('veiculos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><rect x="3" y="11" width="18" height="6" rx="2"/><path d="M7 17v2M17 17v2"/></svg>Veículos</div>
+      <div class="tab" data-tab="trabalhos" onclick="cliTab('trabalhos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Trabalhos</div>
+      <div class="tab" data-tab="indicar" onclick="cliTab('indicar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>Indicar</div>
     </div>
 
     <!-- Agendar -->
@@ -836,17 +853,17 @@
   <div id="screen-equipe-dash" class="screen hide">
     <div class="topnav"><button class="backbtn" onclick="go('home')">‹ Voltar</button></div>
     <h2 class="title">Painel da oficina</h2>
-    <p class="sub" style="margin-top:-10px">Logado como <strong id="eq-nome-logado" style="color:var(--white)"></strong> · <a onclick="equipeSair()" style="color:var(--gold);cursor:pointer;text-decoration:underline;">sair</a></p>
+    <p class="sub" style="margin-top:-10px">Logado como <strong id="eq-nome-logado" style="color:var(--white)"></strong> · <a onclick="equipeSair()" style="color:var(--gold);cursor:pointer;text-decoration:underline;">sair</a><span class="bio-toggle hide"> · <a onclick="alternarBiometria()" style="color:var(--gold);cursor:pointer;text-decoration:underline;"></a></span></p>
 
     <div class="tabs">
-      <div class="tab active" data-tab="agenda" onclick="eqTab('agenda')">Agenda</div>
-      <div class="tab" data-tab="orcamentos" onclick="eqTab('orcamentos')">Orçamentos</div>
-      <div class="tab" data-tab="os" onclick="eqTab('os')">Ordens de Serviço</div>
-      <div class="tab" data-tab="clientes" onclick="eqTab('clientes')">Clientes</div>
-      <div class="tab" data-tab="novo-cliente" onclick="eqTab('novo-cliente')">+ Cliente</div>
-      <div class="tab" data-tab="qrcode" onclick="eqTab('qrcode')">QR Code</div>
-      <div class="tab" data-tab="fotos" onclick="eqTab('fotos')">Fotos</div>
-      <div class="tab" data-tab="atividade" onclick="eqTab('atividade')">Atividade</div>
+      <div class="tab active" data-tab="agenda" onclick="eqTab('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agenda</div>
+      <div class="tab" data-tab="orcamentos" onclick="eqTab('orcamentos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>Orçamentos</div>
+      <div class="tab" data-tab="os" onclick="eqTab('os')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>Ordens de Serviço</div>
+      <div class="tab" data-tab="clientes" onclick="eqTab('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>Clientes</div>
+      <div class="tab" data-tab="novo-cliente" onclick="eqTab('novo-cliente')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M19 8v6M16 11h6"/></svg>Cliente</div>
+      <div class="tab" data-tab="qrcode" onclick="eqTab('qrcode')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20v.01M20 20v.01"/></svg>QR Code</div>
+      <div class="tab" data-tab="fotos" onclick="eqTab('fotos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Fotos</div>
+      <div class="tab" data-tab="atividade" onclick="eqTab('atividade')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Atividade</div>
     </div>
 
     <div class="tabpane" data-pane="agenda">
@@ -955,6 +972,145 @@
 </div>
 
 <script>
+/* ---------------- VERSÃO ---------------- */
+const APP_VERSAO = '1.2';
+document.getElementById('app-versao').textContent = 'v' + APP_VERSAO;
+
+/* ---------------- SESSÃO SALVA: evita piscar a tela inicial ---------------- */
+(function(){
+  try{
+    const salva = Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k));
+    if(salva){
+      document.body.classList.add('restaurando');
+      setTimeout(()=>document.body.classList.remove('restaurando'), 8000);
+    }
+  }catch(e){}
+})();
+
+
+/* ---------------- BIOMETRIA (bloqueio do app com WebAuthn) ----------------
+   A biometria só funciona depois que o usuário entra com senha e ativa.
+   Ela desbloqueia a sessão salva neste aparelho; não substitui a senha. */
+let SESSAO_BLOQUEADA = null;
+const bioChave = uid => 'zago_bio_' + uid;
+const bioAtiva = uid => !!localStorage.getItem(bioChave(uid));
+const b64uParaBytes = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+const bytesParaB64u = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+
+async function bioSuportada(){
+  try{
+    return !!(window.PublicKeyCredential && window.isSecureContext &&
+      await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+  }catch(e){ return false; }
+}
+async function atualizarLinksBiometria(){
+  const ok = await bioSuportada();
+  const ligada = ok && SESSION.userId && bioAtiva(SESSION.userId);
+  document.querySelectorAll('.bio-toggle').forEach(el=>{
+    el.classList.toggle('hide', !(ok && SESSION.userId));
+    const alvo = el.tagName === 'SPAN' ? el.querySelector('a') : el;
+    alvo.textContent = ligada ? '🔒 Desativar biometria' : '🔒 Ativar biometria';
+  });
+}
+async function alternarBiometria(){
+  const uid = SESSION.userId;
+  if(!uid) return;
+  if(bioAtiva(uid)){
+    if(!confirm('Desativar o login por biometria neste aparelho?')) return;
+    localStorage.removeItem(bioChave(uid));
+    toast('Biometria desativada');
+    atualizarLinksBiometria();
+    return;
+  }
+  try{
+    const nome = SESSION.nome || 'Zago';
+    const cred = await navigator.credentials.create({ publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rp: { name:'Zago Auto Service' },
+      user: { id:new TextEncoder().encode(uid), name:nome, displayName:nome },
+      pubKeyCredParams: [{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required', residentKey:'discouraged' },
+      timeout: 60000, attestation:'none'
+    }});
+    localStorage.setItem(bioChave(uid), bytesParaB64u(cred.rawId));
+    toast('Biometria ativada neste aparelho');
+    atualizarLinksBiometria();
+  }catch(e){
+    console.error('Biometria:', e);
+    toast('Não foi possível ativar a biometria');
+  }
+}
+async function verificarBiometria(uid){
+  const salvo = localStorage.getItem(bioChave(uid));
+  if(!salvo) return true;
+  try{
+    await navigator.credentials.get({ publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials: [{ type:'public-key', id:b64uParaBytes(salvo), transports:['internal'] }],
+      userVerification: 'required', timeout: 60000
+    }});
+    return true;
+  }catch(e){ return false; }
+}
+async function desbloquearBiometria(){
+  if(!SESSAO_BLOQUEADA) return;
+  const ok = await verificarBiometria(SESSAO_BLOQUEADA.id);
+  if(!ok){ toast('Biometria não reconhecida'); return; }
+  const user = SESSAO_BLOQUEADA;
+  SESSAO_BLOQUEADA = null;
+  await abrirComoUsuario(user);
+}
+async function bloqueioUsarSenha(){
+  SESSAO_BLOQUEADA = null;
+  await supabaseClient.auth.signOut();
+  SESSION = { role:null, userId:null, fone:null, nome:null };
+  go('home');
+}
+
+/* Abre o app direto na área certa (equipe ou cliente) usando a sessão salva */
+async function abrirComoUsuario(user){
+  const { data: perfil, error: e1 } = await supabaseClient.from('profiles').select('role').eq('id', user.id).maybeSingle();
+  if(e1) throw e1;
+  if(perfil && perfil.role === 'equipe'){ await entrarComoEquipeLogada(user); return; }
+  const { error: e2 } = await supabaseClient.from('clientes').select('id').eq('id', user.id).maybeSingle();
+  if(e2) throw e2;
+  await continuarComoClienteAposGoogle(user);
+}
+async function restaurarSessao(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(!session || SESSION.role) return;
+  if(bioAtiva(session.user.id)){
+    SESSAO_BLOQUEADA = session.user;
+    go('bloqueio');
+    document.body.classList.remove('restaurando');
+    desbloquearBiometria();
+    return;
+  }
+  await abrirComoUsuario(session.user);
+}
+
+/* ---------------- INSTALAR APP (PWA) ---------------- */
+let _pwaPrompt = null;
+const _pwaInstalado = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const _pwaIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+function atualizarBotaoInstalar(){
+  const mostrar = !_pwaInstalado() && (_pwaPrompt || _pwaIOS);
+  document.querySelectorAll('.btn-instalar').forEach(b => b.classList.toggle('hide', !mostrar));
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _pwaPrompt = e; atualizarBotaoInstalar(); });
+window.addEventListener('appinstalled', () => { _pwaPrompt = null; atualizarBotaoInstalar(); toast('App instalado!'); });
+async function instalarApp(){
+  if(_pwaPrompt){
+    _pwaPrompt.prompt();
+    await _pwaPrompt.userChoice;
+    _pwaPrompt = null;
+    atualizarBotaoInstalar();
+  } else if(_pwaIOS){
+    toast("No iPhone: toque em Compartilhar e depois em 'Adicionar à Tela de Início'");
+  }
+}
+atualizarBotaoInstalar();
+
 /* ---------------- SUPABASE ---------------- */
 const SUPABASE_URL = 'https://uecsagtqdlsljcszftsk.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_WMPaSxaN1ruhqzdl7Zb3rQ_OIMGg9mc';
@@ -977,7 +1133,9 @@ if (!window.supabase || typeof window.supabase.createClient !== 'function') {
   throw new Error('Supabase JS não carregou (window.supabase indefinido).');
 }
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storage:window.localStorage }
+});
 
 let DB = {
   clientes: {},      // id (uuid) -> {id, nome, fone, veiculos:[{placa,modelo,ano,ultimaTrocaOleo,ultimaRevisao}], indicado_por}
@@ -1309,6 +1467,7 @@ async function entrarComoClienteLogado(userId, nome, fone){
   renderAlertaRevisao();
   verificarAvaliacaoPendente();
   go('cliente-dash');
+  atualizarLinksBiometria();
   abrirOrcamentoPendenteDeeplink();
 }
 
@@ -2281,6 +2440,7 @@ async function entrarComoEquipeLogada(user){
   fetchLogs();
   fetchOrdensServico();
   go('equipe-dash');
+  atualizarLinksBiometria();
 }
 async function equipeEntrar(){
   const email = document.getElementById('eq-email').value.trim();
@@ -2449,9 +2609,26 @@ function renderEqOS(){
         </select>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="imprimirOS('${os.id}')" title="Imprimir">🖨️</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="abrirModalAssinatura('${os.id}')" title="Assinatura">✍️</button>
+        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0;border-color:var(--danger);color:var(--danger)" onclick="excluirOrdemServico('${os.id}')" title="Excluir">🗑️</button>
       </div>
     </div>`;
   }).join('');
+}
+
+async function excluirOrdemServico(id){
+  const os = DB.ordens_servico.find(o=>o.id===id);
+  if(!os){ toast('OS não encontrada'); return; }
+  const cliente = DB.clientes[os.cliente_id];
+  const nome = cliente ? cliente.nome : 'cliente removido';
+  if(!confirm(`Excluir a OS #${os.numero} de ${nome}? Essa ação não pode ser desfeita.`)) return;
+  if(os.assinatura && !confirm('Esta OS tem ASSINATURA registrada. Ao excluir, a assinatura (comprovante) também será apagada. Confirmar a exclusão?')) return;
+  const { data, error } = await supabaseClient.from('ordens_servico').delete().eq('id', id).select();
+  if(error){ toast('Erro ao excluir: '+error.message); return; }
+  if(!data || !data.length){ toast('Não foi possível excluir (sem permissão no banco).'); return; }
+  DB.ordens_servico = DB.ordens_servico.filter(o=>o.id!==id);
+  renderEqOS();
+  toast('OS excluída');
+  registrarLog('OS excluída', `OS #${os.numero} — ${nome}`);
 }
 
 async function atualizarStatusOS(id, status){
@@ -3090,16 +3267,13 @@ function renderQR(){
   }
 
   try {
-    // Detecta retorno do login com Google (supabase-js já processa o token da URL sozinho)
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if(session && !SESSION.role){
-      const { data: perfil } = await supabaseClient.from('profiles').select('role').eq('id', session.user.id).single();
-      if(!perfil || perfil.role !== 'equipe'){
-        await continuarComoClienteAposGoogle(session.user);
-      }
-    }
+    // Restaura a sessão salva (equipe ou cliente) e abre direto na área certa.
+    // Se der erro de rede, mantém a sessão salva e só mostra a tela inicial.
+    await restaurarSessao();
   } catch (e) {
-    console.error('Erro ao restaurar sessão do Google:', e);
+    console.error('Erro ao restaurar sessão:', e);
+  } finally {
+    document.body.classList.remove('restaurando');
   }
 
   if('serviceWorker' in navigator){
