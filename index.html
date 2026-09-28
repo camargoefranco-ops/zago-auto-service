@@ -1005,7 +1005,7 @@
 
 <script>
 /* ---------------- VERSÃO ---------------- */
-const APP_VERSAO = '1.4';
+const APP_VERSAO = '1.6';
 document.getElementById('app-versao').textContent = 'v' + APP_VERSAO;
 
 /* ---------------- SESSÃO SALVA: evita piscar a tela inicial ---------------- */
@@ -3111,6 +3111,7 @@ function renderEqClientes(){
 
       <div class="eq-cliente-acoes">
         <button onclick="toggleEditarCliente('${c.id}')">Editar</button>
+        <button onclick="equipeRedefinirSenha('${c.id}','${c.nome.replace(/'/g,"")}','${c.fone||''}')">Redefinir senha</button>
         <button class="perigo" onclick="excluirCliente('${c.id}','${c.nome.replace(/'/g,"")}')">Excluir</button>
       </div>
 
@@ -3218,11 +3219,26 @@ async function salvarEdicaoCliente(id){
 }
 
 async function excluirCliente(id, nome){
-  if(!confirm('Excluir o cliente '+nome+'? Isso apaga o perfil, agendamentos, orçamentos e avaliações dele. Não pode ser desfeito.')) return;
-  const { error } = await supabaseClient.from('clientes').delete().eq('id', id);
-  if(error){ toast('Erro ao excluir: '+error.message); return; }
-  toast('Cliente excluído. Para remover o login dele, apague também em Authentication > Users no Supabase.');
+  if(!confirm('Excluir o cliente '+nome+'? Isso apaga o perfil e o login dele. Agendamentos, orçamentos e avaliações antigos continuam no histórico da oficina, sem o nome do cliente. Não pode ser desfeito.')) return;
+  const { error } = await supabaseClient.rpc('equipe_excluir_cliente', { p_cliente_id: id });
+  if(error){ toast('Erro ao excluir: ' + error.message); return; }
+  delete DB.clientes[id];
+  renderEqClientes();
+  toast('Cliente excluído por completo (perfil e login).');
   registrarLog('Cliente excluído', nome);
+}
+
+async function equipeRedefinirSenha(id, nome, fone){
+  if(!confirm('Gerar uma nova senha temporária para '+nome+'? A senha antiga deixa de funcionar.')) return;
+  const { data: senha, error } = await supabaseClient.rpc('equipe_redefinir_senha', { p_cliente_id: id });
+  if(error){ toast('Erro ao redefinir: ' + error.message); return; }
+  registrarLog('Senha redefinida', nome);
+  if(fone){
+    const msg = `Olá, ${nome}! Sua senha de acesso ao app da Zago foi redefinida. Nova senha temporária: ${senha}. Entre com seu WhatsApp e essa senha.`;
+    window.open('https://wa.me/' + fone.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank');
+  } else {
+    toast('Nova senha de ' + nome + ': ' + senha);
+  }
 }
 
 async function gerarCupom(clienteId){
