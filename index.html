@@ -141,6 +141,7 @@
     border:1px solid var(--gold-deep);
     color:var(--gold);
   }
+  a.btn{display:block;text-align:center;text-decoration:none;box-sizing:border-box;}
   .btn.ghost{
     background:transparent;
     border:1px solid var(--line);
@@ -178,6 +179,21 @@
   }
   .tab.active{color:var(--gold);border-color:var(--gold);}
   .tab svg{width:14px;height:14px;vertical-align:-2px;margin-right:5px;}
+
+  .tabgrid{display:grid;gap:8px;margin:14px 0 6px;}
+  .tabgrid-3{grid-template-columns:repeat(3,1fr);}
+  .tabgrid-4{grid-template-columns:repeat(4,1fr);}
+  .tabtile{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:12px 4px 10px;color:var(--grey);font-size:10.5px;font-weight:700;
+    text-align:center;cursor:pointer;line-height:1.2;
+  }
+  .tabtile svg{width:20px;height:20px;color:var(--grey);}
+  .tabtile.active{background:rgba(242,194,48,.10);border-color:var(--gold);color:var(--gold);}
+  .tabtile.active svg{color:var(--gold);}
+  .tabtile:active{transform:scale(.96);}
+  .tabtile span{white-space:normal;}
 
   .chipbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
   .chip{
@@ -258,6 +274,13 @@
   }
   .switchrole svg{width:20px;height:20px;opacity:.6;flex-shrink:0;}
   .switchrole a{color:var(--grey);font-size:12px;text-decoration:underline;cursor:pointer;}
+  .equipe-access{
+    display:flex;align-items:center;justify-content:center;gap:8px;margin:20px auto 0;
+    background:var(--surface);border:1px solid var(--line);color:var(--grey);
+    padding:10px 18px;border-radius:24px;font-size:12.5px;font-weight:700;cursor:pointer;
+  }
+  .equipe-access svg{width:16px;height:16px;color:var(--gold);}
+  .equipe-access:active{transform:scale(.97);}
 
   /* ---- Wizard (agendamento passo a passo) ---- */
   .wizard{margin-top:18px;}
@@ -487,7 +510,15 @@
 
     <button class="btn secondary btn-instalar hide" onclick="instalarApp()" style="margin-top:0;margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>Instalar app</button>
 
-    <button class="bigbtn" onclick="go('cliente-login')">
+    <button class="bigbtn" onclick="homeIrParaLogin('entrar')">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg></div>
+      <div>
+        Já sou cliente
+        <div class="meta">Entrar na minha conta</div>
+      </div>
+    </button>
+
+    <button class="bigbtn" onclick="homeIrParaLogin('criar')">
       <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M19 8v6M16 11h6"/></svg></div>
       <div>
         Faça seu cadastro
@@ -501,19 +532,12 @@
     <div class="tag-left">O que dizem nossos clientes</div>
     <div class="gallery-scroll" id="testemunhos-home-scroll"></div>
 
-    <div class="switchrole">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--grey)">
-        <path d="M6 5.5C8 3.6 11 3 13.5 4"></path>
-        <path d="M13.5 4l-2.6.4M13.5 4l-1 2.3"></path>
-        <circle cx="8.2" cy="9" r="2.1"></circle>
-        <path d="M4.8 15c0-2.6 1.5-4.3 3.4-4.3s3.4 1.7 3.4 4.3"></path>
-        <circle cx="16.3" cy="15.2" r="2.6"></circle>
-        <path d="M16.3 11.4v1M16.3 17.9v1M12.9 15.2h1M18.7 15.2h1M13.9 12.8l.7.7M17.9 16.9l.7.7M13.9 17.6l.7-.7M17.9 13.5l.7-.7"></path>
-        <path d="M18.5 19.5c-2 1.9-5 2.5-7.5 1.5"></path>
-        <path d="M11 21l2.6-.4M11 21l1-2.3"></path>
+    <button class="equipe-access" onclick="goEquipeEntry()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.1-3.1a4 4 0 0 1-5.3 5.3L7 20l-3-3 8.5-8.5a4 4 0 0 1 5.3-5.3z"/>
       </svg>
-      <a onclick="goEquipeEntry()">Acesso da equipe</a>
-    </div>
+      Acesso da equipe
+    </button>
 
     <div class="footer-info">
       <strong>Zago Auto Service</strong><br>
@@ -625,13 +649,13 @@
     <div id="cli-alerta-oleo"></div>
     <div id="cli-alerta-revisao"></div>
 
-    <div class="tabs">
-      <div class="tab active" data-tab="agendar" onclick="cliTab('agendar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agendar</div>
-      <div class="tab" data-tab="orcamento" onclick="cliTab('orcamento')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>Orçamento</div>
-      <div class="tab" data-tab="status" onclick="cliTab('status')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Status</div>
-      <div class="tab" data-tab="veiculos" onclick="cliTab('veiculos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><rect x="3" y="11" width="18" height="6" rx="2"/><path d="M7 17v2M17 17v2"/></svg>Veículos</div>
-      <div class="tab" data-tab="trabalhos" onclick="cliTab('trabalhos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Trabalhos</div>
-      <div class="tab" data-tab="indicar" onclick="cliTab('indicar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>Indicar</div>
+    <div class="tabgrid tabgrid-3">
+      <button class="tabtile active" data-tab="agendar" onclick="cliTab('agendar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Agendar</span></button>
+      <button class="tabtile" data-tab="orcamento" onclick="cliTab('orcamento')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg><span>Orçamento</span></button>
+      <button class="tabtile" data-tab="status" onclick="cliTab('status')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Status</span></button>
+      <button class="tabtile" data-tab="veiculos" onclick="cliTab('veiculos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><rect x="3" y="11" width="18" height="6" rx="2"/><path d="M7 17v2M17 17v2"/></svg><span>Veículos</span></button>
+      <button class="tabtile" data-tab="trabalhos" onclick="cliTab('trabalhos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>Trabalhos</span></button>
+      <button class="tabtile" data-tab="indicar" onclick="cliTab('indicar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg><span>Indicar</span></button>
     </div>
 
     <!-- Agendar -->
@@ -694,12 +718,20 @@
           </div>
         </div>
 
-        <!-- Passo 6: Data -->
+        <!-- Passo 6: Data (ou aviso de avaliação, para som e acessórios) -->
         <div class="wizstep hide" data-step="6">
           <button class="wizback" onclick="agVoltar(5)">‹ Voltar</button>
-          <h3 class="wizq">Para qual dia?</h3>
-          <p class="sub" id="ag-step3-legenda" style="margin-top:-8px"></p>
-          <div id="ag-step3-calendario"></div>
+          <div id="ag-step6-calendario">
+            <h3 class="wizq">Para qual dia?</h3>
+            <p class="sub" id="ag-step3-legenda" style="margin-top:-8px"></p>
+            <div id="ag-step3-calendario"></div>
+          </div>
+          <div id="ag-step6-avaliacao" class="hide">
+            <h3 class="wizq">Esse serviço precisa de avaliação</h3>
+            <p class="sub" style="margin-top:-6px">Serviços de som e acessórios podem ser rápidos ou levar mais de duas horas, dependendo do caso. Por isso nossa equipe avalia antes de marcar um horário.</p>
+            <a class="btn" id="ag-avaliacao-whats" href="#" target="_blank" rel="noopener">Falar no WhatsApp para avaliação</a>
+            <button class="btn ghost" onclick="agResetWizard()">Agendar outro serviço</button>
+          </div>
         </div>
 
         <!-- Passo 7: Horário -->
@@ -855,15 +887,15 @@
     <h2 class="title">Painel da oficina</h2>
     <p class="sub" style="margin-top:-10px">Logado como <strong id="eq-nome-logado" style="color:var(--white)"></strong> · <a onclick="equipeSair()" style="color:var(--gold);cursor:pointer;text-decoration:underline;">sair</a><span class="bio-toggle hide"> · <a onclick="alternarBiometria()" style="color:var(--gold);cursor:pointer;text-decoration:underline;"></a></span></p>
 
-    <div class="tabs">
-      <div class="tab active" data-tab="agenda" onclick="eqTab('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agenda</div>
-      <div class="tab" data-tab="orcamentos" onclick="eqTab('orcamentos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>Orçamentos</div>
-      <div class="tab" data-tab="os" onclick="eqTab('os')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>Ordens de Serviço</div>
-      <div class="tab" data-tab="clientes" onclick="eqTab('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>Clientes</div>
-      <div class="tab" data-tab="novo-cliente" onclick="eqTab('novo-cliente')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M19 8v6M16 11h6"/></svg>Cliente</div>
-      <div class="tab" data-tab="qrcode" onclick="eqTab('qrcode')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20v.01M20 20v.01"/></svg>QR Code</div>
-      <div class="tab" data-tab="fotos" onclick="eqTab('fotos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Fotos</div>
-      <div class="tab" data-tab="atividade" onclick="eqTab('atividade')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Atividade</div>
+    <div class="tabgrid tabgrid-4">
+      <button class="tabtile active" data-tab="agenda" onclick="eqTab('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Agenda</span></button>
+      <button class="tabtile" data-tab="orcamentos" onclick="eqTab('orcamentos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg><span>Orçamentos</span></button>
+      <button class="tabtile" data-tab="os" onclick="eqTab('os')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg><span>Ordens de Serviço</span></button>
+      <button class="tabtile" data-tab="clientes" onclick="eqTab('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span>Clientes</span></button>
+      <button class="tabtile" data-tab="novo-cliente" onclick="eqTab('novo-cliente')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M19 8v6M16 11h6"/></svg><span>Cliente</span></button>
+      <button class="tabtile" data-tab="qrcode" onclick="eqTab('qrcode')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20v.01M20 20v.01"/></svg><span>QR Code</span></button>
+      <button class="tabtile" data-tab="fotos" onclick="eqTab('fotos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>Fotos</span></button>
+      <button class="tabtile" data-tab="atividade" onclick="eqTab('atividade')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Atividade</span></button>
     </div>
 
     <div class="tabpane" data-pane="agenda">
@@ -973,7 +1005,7 @@
 
 <script>
 /* ---------------- VERSÃO ---------------- */
-const APP_VERSAO = '1.2';
+const APP_VERSAO = '1.4';
 document.getElementById('app-versao').textContent = 'v' + APP_VERSAO;
 
 /* ---------------- SESSÃO SALVA: evita piscar a tela inicial ---------------- */
@@ -1335,6 +1367,7 @@ function foneParaEmail(fone){
   return 'cliente' + digitos + '@zagoapp.local';
 }
 
+function homeIrParaLogin(modo){ go('cliente-login'); cliLoginModo(modo); }
 function cliLoginModo(modo){
   document.querySelectorAll('#screen-cliente-login .tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===modo));
   const cadWizard = document.getElementById('cli-cadastro-wizard');
@@ -1523,7 +1556,7 @@ function renderClienteIndicar(){
 }
 
 function cliTab(name){
-  document.querySelectorAll('#screen-cliente-dash .tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('#screen-cliente-dash .tabtile').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
   document.querySelectorAll('#screen-cliente-dash .tabpane').forEach(p=>p.classList.toggle('hide', p.dataset.pane!==name));
   if(name==='agendar'){ agResetWizard(); }
   if(name==='orcamento'){ orResetWizard(); }
@@ -1546,8 +1579,82 @@ function formatarTelefone(el){
 
 let agData = { categoria:null, modelo:null, ano:null, placa:null, veiculo:null, veiculoLabel:'', servicoBase:null, servico:null, tamanho:null, data:null, hora:null };
 const AG_TOTAL_STEPS = 8;
-const HORARIOS_SUGERIDOS = ['08:00','09:00','10:00','11:00','13:30','14:30','15:30','16:30'];
 const SERVICOS_GRANDES = ['Revisão preventiva', 'Elétrica', 'Alternador', 'Motor de arranque', 'Suspensão'];
+
+/* ---------------- Agenda: duração dos serviços e bloqueio de horário ----------------
+   Duração em minutos de cada serviço. O que não está na lista usa a duração
+   padrão da categoria (DURACAO_PADRAO_CATEGORIA). Som e acessórios não tem
+   duração fixa: sempre passa por avaliação antes de agendar. */
+const DURACAO_SERVICO = {
+  'Troca de óleo': 40,
+  'Freio': 90,
+  'Suspensão': 150,
+  'Alternador': 120,
+  'Motor de arranque': 90,
+  'Reparo de chicote': 120,
+};
+const DURACAO_PADRAO_CATEGORIA = {
+  'Elétrica': 90,
+  'Manutenção mecânica': 60,
+  'Revisão preventiva': 120,
+};
+const AG_ABERTURA = 8*60;     // 08:00
+const AG_FECHAMENTO = 18*60;  // 18:00
+const AG_ALMOCO_INI = 11*60+30; // 11:30
+const AG_ALMOCO_FIM = 13*60;    // 13:00
+const AG_PASSO = 30;   // de quanto em quanto tempo oferece horário
+const AG_FOLGA = 10;   // folga entre um serviço e outro
+
+function agHmParaMin(hm){ const [h,m] = hm.split(':').map(Number); return h*60+m; }
+function agMinParaHm(min){ return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0'); }
+
+// Soma a duração pulando o almoço. Ex.: 1h começando às 11:00 -> 30 min
+// antes do almoço + 30 min depois = termina 13:30.
+function agCalcularFimMin(inicioMin, duracaoMin){
+  if(inicioMin < AG_ALMOCO_INI){
+    const ateAlmoco = AG_ALMOCO_INI - inicioMin;
+    return duracaoMin <= ateAlmoco ? inicioMin + duracaoMin : AG_ALMOCO_FIM + (duracaoMin - ateAlmoco);
+  }
+  if(inicioMin < AG_ALMOCO_FIM) return AG_ALMOCO_FIM + duracaoMin;
+  return inicioMin + duracaoMin;
+}
+
+function agDuracaoAtual(){
+  const chave = agData.servicoBase || agData.servico;
+  return DURACAO_SERVICO[chave] || DURACAO_PADRAO_CATEGORIA[agData.categoria] || 60;
+}
+
+// Duração de um agendamento já existente (registros antigos não têm duracao_min).
+function agDuracaoExistente(a){
+  if(a.duracao_min) return a.duracao_min;
+  return a.tamanho === 'grande' ? 120 : 30;
+}
+
+function agIntervalosOcupados(iso){
+  return DB.agendamentos
+    .filter(a => a.data===iso && a.status!=='Finalizado' && a.status!=='Cancelado')
+    .map(a => {
+      const ini = agHmParaMin(a.hora);
+      const fim = agCalcularFimMin(ini, agDuracaoExistente(a));
+      return [ini - AG_FOLGA, fim + AG_FOLGA];
+    });
+}
+
+function agHorarioLivre(iso, inicioMin, duracaoMin){
+  if(inicioMin < AG_ABERTURA || inicioMin >= AG_FECHAMENTO) return false;
+  if(inicioMin >= AG_ALMOCO_INI && inicioMin < AG_ALMOCO_FIM) return false; // não abre durante o almoço
+  const fim = agCalcularFimMin(inicioMin, duracaoMin);
+  if(fim > AG_FECHAMENTO) return false;
+  return !agIntervalosOcupados(iso).some(([a,b]) => inicioMin < b && fim > a);
+}
+
+function agHorariosDoDia(iso, duracaoMin){
+  const horarios = [];
+  for(let m = AG_ABERTURA; m < AG_FECHAMENTO; m += AG_PASSO){
+    if(agHorarioLivre(iso, m, duracaoMin)) horarios.push(agMinParaHm(m));
+  }
+  return horarios;
+}
 
 function agResetWizard(){
   agData = { categoria:null, modelo:null, ano:null, placa:null, veiculo:null, veiculoLabel:'', servicoBase:null, servico:null, tamanho:null, data:null, hora:null };
@@ -1666,14 +1773,12 @@ function agConfirmarDetalhe(){
   if(!detalhe){ toast('Descreva o que precisa'); return; }
   agData.servico = agData.servicoBase + ' — ' + detalhe;
   agData.tamanho = SERVICOS_GRANDES.includes(agData.servicoBase) ? 'grande' : 'pequeno';
-  renderAgStep3Calendario();
-  agAvancar(6);
+  agIrParaStep6();
 }
 function agEscolherServicoFinal(servico){
   agData.servico = servico;
   agData.tamanho = SERVICOS_GRANDES.includes(servico) ? 'grande' : 'pequeno';
-  renderAgStep3Calendario();
-  agAvancar(6);
+  agIrParaStep6();
 }
 function agIniciarComServicoPreDefinido(placa, servicoDesejado){
   const categoria = servicoDesejado === 'Revisão preventiva' ? 'Revisão preventiva' : 'Manutenção mecânica';
@@ -1690,14 +1795,25 @@ function agIniciarComServicoPreDefinido(placa, servicoDesejado){
   agData.veiculoLabel = veiculo.modelo + ' — ' + veiculo.placa;
   agData.servico = servico;
   agData.tamanho = SERVICOS_GRANDES.includes(servico) ? 'grande' : 'pequeno';
-  renderAgStep3Calendario();
-  agAvancar(6);
+  agIrParaStep6();
 }
-function agOcupacaoDia(iso){
-  const doDia = DB.agendamentos.filter(a => a.data===iso && a.tamanho==='grande' && a.status!=='Finalizado');
-  const manha = doDia.some(a => a.hora < '12:00');
-  const tarde = doDia.some(a => a.hora >= '12:00');
-  return { manha, tarde };
+
+// Decide se o passo 6 mostra o calendário (serviço direto) ou o aviso de
+// avaliação (som e acessórios sempre passa por avaliação antes de agendar).
+function agIrParaStep6(){
+  const calEl = document.getElementById('ag-step6-calendario');
+  const avEl = document.getElementById('ag-step6-avaliacao');
+  if(agData.categoria === 'Som e acessórios'){
+    calEl.classList.add('hide');
+    avEl.classList.remove('hide');
+    const msg = `Olá! Sou cliente da Zago e quero agendar um serviço de som: ${agData.servico} — ${agData.veiculoLabel}. Podem avaliar e me passar o melhor horário?`;
+    document.getElementById('ag-avaliacao-whats').href = 'https://wa.me/5514991433711?text=' + encodeURIComponent(msg);
+  } else {
+    avEl.classList.add('hide');
+    calEl.classList.remove('hide');
+    renderAgStep3Calendario();
+  }
+  agAvancar(6);
 }
 function agGerarProximosDias(qtd){
   const dias = [];
@@ -1713,25 +1829,19 @@ function agISOLocal(d){
   return `${y}-${m}-${day}`;
 }
 function renderAgStep3Calendario(){
-  const legenda = document.getElementById('ag-step3-legenda');
-  legenda.textContent = agData.tamanho==='grande'
-    ? 'Serviços grandes: só 1 pela manhã e 1 pela tarde por dia. Dias esmaecidos já estão cheios.'
-    : 'Escolha o melhor dia para o serviço.';
+  const duracao = agDuracaoAtual();
+  document.getElementById('ag-step3-legenda').textContent =
+    'Mostramos só os horários livres. Perto do almoço (11:30–13:00) você ainda pode marcar — o atendimento continua à tarde.';
   const el = document.getElementById('ag-step3-calendario');
   const dias = agGerarProximosDias(21);
   const wds = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   el.innerHTML = dias.map(d=>{
     const iso = agISOLocal(d);
-    const {manha, tarde} = agOcupacaoDia(iso);
-    const cheio = agData.tamanho==='grande' && manha && tarde;
-    let nota = '';
-    if(agData.tamanho==='grande' && (manha || tarde)){
-      nota = (manha?'manhã cheia':'') + (manha&&tarde?' · ':'') + (tarde?'tarde cheia':'');
-    }
+    const cheio = agHorariosDoDia(iso, duracao).length === 0;
     return `<button class="calday ${cheio?'full':''}" ${cheio?'disabled':''} onclick="agEscolherDia('${iso}')">
       <span class="calwd">${wds[d.getDay()]}</span>
       <span class="calnum">${d.getDate()}/${d.getMonth()+1}</span>
-      ${nota?`<span class="calnote">${nota}</span>`:''}
+      ${cheio?'<span class="calnote">sem horários</span>':''}
     </button>`;
   }).join('');
   el.className = 'wizcalendar';
@@ -1743,13 +1853,11 @@ function agEscolherDia(iso){
 }
 function agEscolherHorario(hora){
   if(!hora) return;
-  if(agData.tamanho==='grande' && agData.data){
-    const {manha, tarde} = agOcupacaoDia(agData.data);
-    const periodoOcupado = hora < '12:00' ? manha : tarde;
-    if(periodoOcupado){
-      toast('Esse período já tem um serviço grande nesse dia. Escolha outro horário ou dia.');
-      return;
-    }
+  const min = agHmParaMin(hora);
+  if(!agHorarioLivre(agData.data, min, agDuracaoAtual())){
+    toast('Esse horário já não está livre. Escolha outro.');
+    renderAgStep4Horarios();
+    return;
   }
   agData.hora = hora;
   agAvancar(8);
@@ -1757,14 +1865,10 @@ function agEscolherHorario(hora){
 function renderAgStep4Horarios(){
   const el = document.getElementById('ag-step4-horarios');
   if(!el) return;
-  let horarios = HORARIOS_SUGERIDOS;
-  if(agData.tamanho==='grande' && agData.data){
-    const {manha, tarde} = agOcupacaoDia(agData.data);
-    horarios = horarios.filter(h => (h<'12:00' ? !manha : !tarde));
-  }
+  const horarios = agHorariosDoDia(agData.data, agDuracaoAtual());
   el.innerHTML = horarios.length
     ? horarios.map(h=>`<button class="wizopt" onclick="agEscolherHorario('${h}')" style="display:inline-block;width:auto;text-align:center;">${h}</button>`).join('')
-    : '<div class="empty">Sem horários grandes livres nesse dia.<br>Volte e escolha outro dia.</div>';
+    : '<div class="empty">Sem horários livres nesse dia.<br>Volte e escolha outro dia.</div>';
   el.style.display='flex'; el.style.flexWrap='wrap'; el.style.gap='8px';
 }
 function renderAgResumo(){
@@ -2004,8 +2108,14 @@ async function criarAgendamento(){
   const veiculo = agData.veiculo;
   const servico = agData.servico;
   const tamanho = agData.tamanho;
+  const duracao_min = agDuracaoAtual();
   const data = agData.data;
   const hora = agData.hora;
+  if(!agHorarioLivre(data, agHmParaMin(hora), duracao_min)){
+    toast('Esse horário acabou de ser ocupado. Escolha outro.');
+    agVoltar(7); renderAgStep4Horarios();
+    return;
+  }
   let obs = document.getElementById('ag-obs').value;
   if(!veiculo){ toast('Cadastre um veículo primeiro'); return; }
   if(!data || !hora){ toast('Escolha data e horário'); return; }
@@ -2020,7 +2130,7 @@ async function criarAgendamento(){
   }
 
   const { error } = await supabaseClient.from('agendamentos').insert({
-    cliente_id: SESSION.userId, fone:SESSION.fone, veiculo, servico, tamanho, data, hora, obs, status:'Recebido'
+    cliente_id: SESSION.userId, fone:SESSION.fone, veiculo, servico, tamanho, duracao_min, data, hora, obs, status:'Recebido'
   });
   if(error){ toast('Erro ao agendar: '+error.message); return; }
   toast('Agendamento enviado! Acompanhe em "Status".');
@@ -2462,7 +2572,7 @@ function equipeSair(){
   go('home');
 }
 function eqTab(name){
-  document.querySelectorAll('#screen-equipe-dash .tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('#screen-equipe-dash .tabtile').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
   document.querySelectorAll('#screen-equipe-dash .tabpane').forEach(p=>p.classList.toggle('hide', p.dataset.pane!==name));
 }
 
