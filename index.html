@@ -590,8 +590,12 @@
     <div class="divisor-ou"><span>ou</span></div>
 
     <div class="tabs" style="padding:0;margin:0 0 14px;">
-      <div class="tab active" data-tab="criar" onclick="cliLoginModo('criar')" style="flex:1;text-align:center;">Criar conta</div>
-      <div class="tab" data-tab="entrar" onclick="cliLoginModo('entrar')" style="flex:1;text-align:center;">Já tenho conta</div>
+      <div class="tab active" data-tab="criar" onclick="cliLoginModo('criar')" style="flex:1;text-align:center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M19 8v6M16 11h6"/></svg>Criar conta
+      </div>
+      <div class="tab" data-tab="entrar" onclick="cliLoginModo('entrar')" style="flex:1;text-align:center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>Já tenho conta
+      </div>
     </div>
 
     <!-- CRIAR CONTA: uma tela por vez -->
@@ -631,7 +635,7 @@
           </label>
         </div>
 
-        <button class="btn" style="margin-top:14px" onclick="clienteCriarConta()">Criar conta e entrar</button>
+        <button class="btn" style="margin-top:14px" onclick="clienteCriarConta()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M19 8v6M16 11h6"/></svg>Criar conta e entrar</button>
       </div>
     </div>
 
@@ -641,7 +645,7 @@
       <input id="cli-fone-entrar" placeholder="(00) 00000-0000" inputmode="tel" oninput="formatarTelefone(this)">
       <label>Senha</label>
       <input id="cli-senha-entrar" type="password" placeholder="Sua senha">
-      <button class="btn" style="margin-top:14px" onclick="clienteEntrarConta()">Entrar</button>
+      <button class="btn" style="margin-top:14px" onclick="clienteEntrarConta()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>Entrar</button>
       <a class="privacy-link" id="cli-esqueci-senha" href="https://wa.me/5514991433711?text=Ol%C3%A1%2C%20esqueci%20minha%20senha%20do%20app%20da%20Zago%2C%20pode%20me%20ajudar%3F" target="_blank" rel="noopener">Esqueci minha senha</a>
     </div>
   </div>
@@ -899,11 +903,11 @@
     <div class="topnav"><button class="backbtn" onclick="go('home')">‹ Voltar</button></div>
     <h2 class="title">Acesso da equipe</h2>
     <p class="sub">Entre com o e-mail e senha cadastrados pela oficina.</p>
-    <label>E-mail</label>
+    <label><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6l-10 7L2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>E-mail</label>
     <input id="eq-email" type="email" placeholder="seuemail@zago.app">
-    <label>Senha</label>
+    <label><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Senha</label>
     <input id="eq-senha" type="password" placeholder="Sua senha">
-    <button class="btn" onclick="equipeEntrar()">Entrar no painel</button>
+    <button class="btn" onclick="equipeEntrar()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>Entrar no painel</button>
   </div>
 
   <!-- ============ EQUIPE: DASHBOARD ============ -->
@@ -1030,7 +1034,7 @@
 
 <script>
 /* ---------------- VERSÃO ---------------- */
-const APP_VERSAO = '1.9';
+const APP_VERSAO = '2.0';
 document.getElementById('app-versao').textContent = 'v' + APP_VERSAO;
 
 /* ---------------- SEGURANÇA: escape de texto vindo do usuário ----------------
@@ -1303,6 +1307,7 @@ async function fetchOrdensServico(){
   if(error){ console.error('ordens_servico:', error.message); return; }
   DB.ordens_servico = data||[];
   await fetchOsFotos();
+  await fetchOsHistorico();
   renderEqOS();
 }
 async function fetchTudo(){
@@ -1320,6 +1325,7 @@ function subscribeRealtime(){
   supabaseClient.channel('rt-logs').on('postgres_changes', {event:'*', schema:'public', table:'logs'}, fetchLogs).subscribe();
   supabaseClient.channel('rt-os').on('postgres_changes', {event:'*', schema:'public', table:'ordens_servico'}, fetchOrdensServico).subscribe();
   supabaseClient.channel('rt-os-fotos').on('postgres_changes', {event:'*', schema:'public', table:'os_fotos'}, fetchOsFotos).subscribe();
+  supabaseClient.channel('rt-os-historico').on('postgres_changes', {event:'*', schema:'public', table:'os_historico'}, fetchOsHistorico).subscribe();
 }
 
 function renderGaleriaHome(){
@@ -2761,13 +2767,79 @@ function renderEqOS(){
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="imprimirOS('${esc(os.id)}')" title="Imprimir">🖨️</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="abrirModalAssinatura('${esc(os.id)}')" title="Assinatura">✍️</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleFotosOS('${esc(os.id)}')" title="Fotos">📷 ${(DB.os_fotos[os.id]||[]).length || ''}</button>
+        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleEditarOS('${esc(os.id)}')" title="Editar">✏️</button>
+        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleHistoricoOS('${esc(os.id)}')" title="Histórico">🕘 ${(DB.os_historico[os.id]||[]).length || ''}</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0;border-color:var(--danger);color:var(--danger)" onclick="excluirOrdemServico('${esc(os.id)}')" title="Excluir">🗑️</button>
       </div>
+      <div class="hide" id="os-editar-painel-${esc(os.id)}" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>
       <div class="hide" id="os-fotos-painel-${esc(os.id)}" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
         ${osFotosHtml(os.id)}
       </div>
+      <div class="hide" id="os-historico-painel-${esc(os.id)}" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>
     </div>`;
   }).join('');
+}
+
+/* ---------------- Editar e histórico de alterações da OS ---------------- */
+function toggleEditarOS(osId){
+  const painel = document.getElementById('os-editar-painel-'+osId);
+  if(!painel) return;
+  const abrir = painel.classList.contains('hide');
+  painel.classList.toggle('hide');
+  if(!abrir){ painel.innerHTML=''; return; }
+  const os = DB.ordens_servico.find(o=>o.id===osId);
+  if(!os) return;
+  painel.innerHTML = `
+    <label>Descrição do serviço</label>
+    <textarea id="os-edit-desc-${osId}">${os.descricao||''}</textarea>
+    <label style="margin-top:10px">Valor (R$)</label>
+    <input id="os-edit-valor-${osId}" type="number" step="0.01" value="${os.valor||''}">
+    <button class="btn secondary" style="margin-top:12px" onclick="salvarEdicaoOS('${osId}')">Salvar alterações</button>
+  `;
+}
+
+async function salvarEdicaoOS(osId){
+  const descricao = document.getElementById('os-edit-desc-'+osId).value.trim();
+  const valorTxt = document.getElementById('os-edit-valor-'+osId).value;
+  if(!descricao){ toast('Descreva o serviço'); return; }
+  const { error } = await supabaseClient.from('ordens_servico')
+    .update({ descricao, valor: valorTxt || null }).eq('id', osId);
+  if(error){ toast('Erro ao salvar: '+error.message); return; }
+  toast('OS atualizada');
+  toggleEditarOS(osId);
+  await fetchOrdensServico();
+}
+
+async function fetchOsHistorico(){
+  const { data, error } = await supabaseClient.from('os_historico').select('*').order('criado_em', { ascending:false });
+  if(error){ console.error('os_historico:', error.message); return; }
+  const porOS = {};
+  (data||[]).forEach(h => { (porOS[h.os_id] ||= []).push(h); });
+  DB.os_historico = porOS;
+  document.querySelectorAll('[id^="os-historico-painel-"]').forEach(painel=>{
+    const osId = painel.id.replace('os-historico-painel-','');
+    if(!painel.classList.contains('hide')) painel.innerHTML = osHistoricoHtml(osId);
+  });
+}
+
+function osHistoricoHtml(osId){
+  const lista = DB.os_historico[osId] || [];
+  if(!lista.length) return '<p class="small" style="color:var(--grey)">Nenhuma alteração registrada ainda.</p>';
+  return lista.map(h => {
+    const quando = new Date(h.criado_em).toLocaleString('pt-BR');
+    return `<div style="font-size:12.5px;color:var(--grey);padding:6px 0;border-bottom:1px solid var(--line)">
+      <strong style="color:var(--white)">${h.campo}</strong> alterado por ${h.alterado_por||'—'} em ${quando}<br>
+      <span style="color:var(--danger)">${h.valor_antigo||'—'}</span> → <span style="color:var(--ok)">${h.valor_novo||'—'}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleHistoricoOS(osId){
+  const painel = document.getElementById('os-historico-painel-'+osId);
+  if(!painel) return;
+  const abrir = painel.classList.contains('hide');
+  painel.classList.toggle('hide');
+  if(abrir) painel.innerHTML = osHistoricoHtml(osId);
 }
 
 /* ---------------- Fotos anexadas à Ordem de Serviço ---------------- */
