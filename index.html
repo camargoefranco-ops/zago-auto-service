@@ -487,6 +487,13 @@
     background:none;border:1px solid var(--danger);color:var(--danger);
     border-radius:6px;font-size:11px;padding:8px 6px;cursor:pointer;
   }
+  .os-fotos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+  .os-foto-item{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--line);}
+  .os-foto-item img{width:100%;height:80px;object-fit:cover;display:block;}
+  .os-foto-item button{
+    position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:var(--danger);
+    border:none;border-radius:6px;font-size:11px;padding:2px 6px;cursor:pointer;
+  }
   .eq-cupom-box{
     margin-top:12px;padding-top:12px;border-top:1px solid var(--line);
   }
@@ -1023,7 +1030,7 @@
 
 <script>
 /* ---------------- VERSÃO ---------------- */
-const APP_VERSAO = '1.8';
+const APP_VERSAO = '1.9';
 document.getElementById('app-versao').textContent = 'v' + APP_VERSAO;
 
 /* ---------------- SEGURANÇA: escape de texto vindo do usuário ----------------
@@ -1218,7 +1225,8 @@ let DB = {
   avaliacoes: [],
   cupons: [],
   logs: [],
-  ordens_servico: []
+  ordens_servico: [],
+  os_fotos: {}   // os_id -> array de fotos
 };
 let SESSION = { role:null, userId:null, fone:null, nome:null };
 let ORC_DEEPLINK_ID = null;
@@ -1294,6 +1302,7 @@ async function fetchOrdensServico(){
   const { data, error } = await supabaseClient.from('ordens_servico').select('*').order('criado_em', { ascending:false });
   if(error){ console.error('ordens_servico:', error.message); return; }
   DB.ordens_servico = data||[];
+  await fetchOsFotos();
   renderEqOS();
 }
 async function fetchTudo(){
@@ -1310,6 +1319,7 @@ function subscribeRealtime(){
   supabaseClient.channel('rt-cupons').on('postgres_changes', {event:'*', schema:'public', table:'cupons'}, fetchCupons).subscribe();
   supabaseClient.channel('rt-logs').on('postgres_changes', {event:'*', schema:'public', table:'logs'}, fetchLogs).subscribe();
   supabaseClient.channel('rt-os').on('postgres_changes', {event:'*', schema:'public', table:'ordens_servico'}, fetchOrdensServico).subscribe();
+  supabaseClient.channel('rt-os-fotos').on('postgres_changes', {event:'*', schema:'public', table:'os_fotos'}, fetchOsFotos).subscribe();
 }
 
 function renderGaleriaHome(){
@@ -2750,10 +2760,81 @@ function renderEqOS(){
         </select>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="imprimirOS('${esc(os.id)}')" title="Imprimir">🖨️</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="abrirModalAssinatura('${esc(os.id)}')" title="Assinatura">✍️</button>
+        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleFotosOS('${esc(os.id)}')" title="Fotos">📷 ${(DB.os_fotos[os.id]||[]).length || ''}</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0;border-color:var(--danger);color:var(--danger)" onclick="excluirOrdemServico('${esc(os.id)}')" title="Excluir">🗑️</button>
+      </div>
+      <div class="hide" id="os-fotos-painel-${esc(os.id)}" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
+        ${osFotosHtml(os.id)}
       </div>
     </div>`;
   }).join('');
+}
+
+/* ---------------- Fotos anexadas à Ordem de Serviço ---------------- */
+let osFotoBase64Pendente = {}; // os_id -> base64 escolhido, aguardando salvar
+
+async function fetchOsFotos(){
+  const { data, error } = await supabaseClient.from('os_fotos').select('*').order('criado_em');
+  if(error){ console.error('os_fotos:', error.message); return; }
+  const porOS = {};
+  (data||[]).forEach(f => { (porOS[f.os_id] ||= []).push(f); });
+  DB.os_fotos = porOS;
+  document.querySelectorAll('[id^="os-fotos-painel-"]').forEach(painel=>{
+    const osId = painel.id.replace('os-fotos-painel-','');
+    if(!painel.classList.contains('hide')) painel.innerHTML = osFotosHtml(osId);
+  });
+}
+
+function osFotosHtml(osId){
+  const fotos = DB.os_fotos[osId] || [];
+  const grid = fotos.length ? `<div class="os-fotos-grid">${fotos.map(f=>`
+    <div class="os-foto-item">
+      <img src="${f.foto_base64}">
+      <button onclick="removerFotoOS('${f.id}')" title="Remover">✕</button>
+    </div>`).join('')}</div>` : '<p class="small" style="color:var(--grey)">Nenhuma foto ainda.</p>';
+  return `
+    ${grid}
+    <input type="file" accept="image/*" class="os-foto-arquivo" data-os-id="${osId}">
+    <button class="btn ghost" style="margin-top:8px" onclick="salvarFotoOS('${osId}')">Adicionar foto</button>
+  `;
+}
+
+function toggleFotosOS(osId){
+  const painel = document.getElementById('os-fotos-painel-'+osId);
+  if(!painel) return;
+  const abrir = painel.classList.contains('hide');
+  painel.classList.toggle('hide');
+  if(abrir) painel.innerHTML = osFotosHtml(osId);
+}
+
+document.addEventListener('change', function(e){
+  if(e.target && e.target.classList && e.target.classList.contains('os-foto-arquivo')){
+    const file = e.target.files[0];
+    const osId = e.target.dataset.osId;
+    if(!file) return;
+    comprimirImagem(file, 900, 0.7).then(base64=>{
+      osFotoBase64Pendente[osId] = base64;
+      toast('Foto pronta — toque em "Adicionar foto" para salvar');
+    }).catch(()=> toast('Não foi possível ler essa imagem'));
+  }
+});
+
+async function salvarFotoOS(osId){
+  const base64 = osFotoBase64Pendente[osId];
+  if(!base64){ toast('Escolha uma foto primeiro'); return; }
+  const { error } = await supabaseClient.from('os_fotos').insert({ os_id: osId, foto_base64: base64 });
+  if(error){ toast('Erro ao salvar foto: '+error.message); return; }
+  delete osFotoBase64Pendente[osId];
+  toast('Foto adicionada');
+  await fetchOsFotos();
+}
+
+async function removerFotoOS(fotoId){
+  if(!confirm('Remover esta foto?')) return;
+  const { error } = await supabaseClient.from('os_fotos').delete().eq('id', fotoId);
+  if(error){ toast('Erro ao remover: '+error.message); return; }
+  toast('Foto removida');
+  await fetchOsFotos();
 }
 
 async function excluirOrdemServico(id){
@@ -2815,6 +2896,13 @@ function imprimirOS(id){
       </div>
       ${os.valor ? `<div class="linha"><div class="label">Valor</div><div class="valor">R$ ${Number(os.valor).toFixed(2)}</div></div>` : ''}
       <div class="linha"><div class="label">Status</div><div class="valor">${esc(os.status)}</div></div>
+      ${(DB.os_fotos[id]||[]).length ? `
+      <div class="caixa">
+        <div class="label">Fotos</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+          ${(DB.os_fotos[id]||[]).map(f=>`<img src="${f.foto_base64}" style="width:150px;height:110px;object-fit:cover;border:1px solid #ccc;border-radius:6px;">`).join('')}
+        </div>
+      </div>` : ''}
       <div class="rodape">
         <div class="assinatura">
           ${assin ? `<img src="${assin}" style="max-width:200px;max-height:80px;display:block;margin:0 auto 4px;">` : '<div style="height:60px"></div>'}
