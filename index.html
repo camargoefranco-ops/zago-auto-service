@@ -890,6 +890,18 @@
           <div class="small">Amigos indicados por você</div>
           <div id="cli-total-indicados" style="font-size:28px;font-weight:900;color:var(--white);margin-top:4px;">0</div>
         </div>
+        <h3 style="margin-top:22px;font-size:14px;color:var(--grey)">Meus pontos</h3>
+        <div class="card" style="text-align:center;padding:18px 16px;">
+          <div class="small">Você tem</div>
+          <div id="cli-total-pontos" style="font-size:30px;font-weight:900;color:var(--gold);margin:2px 0">0</div>
+          <div class="small">pontos (1 ponto a cada R$1 pago)</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+          <button class="btn ghost ponto-resgate" data-custo="100" onclick="resgatarPontos(100)">Trocar 100 pontos por 5% de desconto</button>
+          <button class="btn ghost ponto-resgate" data-custo="200" onclick="resgatarPontos(200)">Trocar 200 pontos por 10% de desconto</button>
+          <button class="btn ghost ponto-resgate" data-custo="300" onclick="resgatarPontos(300)">Trocar 300 pontos por 15% de desconto</button>
+        </div>
+
         <h3 style="margin-top:22px;font-size:14px;color:var(--grey)">Meus cupons</h3>
         <div id="cli-meus-cupons"></div>
       </div>
@@ -1230,7 +1242,9 @@ let DB = {
   cupons: [],
   logs: [],
   ordens_servico: [],
-  os_fotos: {}   // os_id -> array de fotos
+  os_fotos: {},      // os_id -> array de fotos
+  os_historico: {},  // os_id -> array de alterações
+  orcamento_itens: {} // orcamento_id -> array de itens
 };
 let SESSION = { role:null, userId:null, fone:null, nome:null };
 let ORC_DEEPLINK_ID = null;
@@ -1263,7 +1277,15 @@ async function fetchOrcamentos(){
   const { data, error } = await supabaseClient.from('orcamentos').select('*').order('criado_em', { ascending:false });
   if(error){ console.error('orcamentos:', error.message); return; }
   DB.orcamentos = data||[];
+  await fetchOrcamentoItens();
   rerenderVisivel();
+}
+async function fetchOrcamentoItens(){
+  const { data, error } = await supabaseClient.from('orcamento_itens').select('*').order('ordem');
+  if(error){ console.error('orcamento_itens:', error.message); return; }
+  const porOrc = {};
+  (data||[]).forEach(i => { (porOrc[i.orcamento_id] ||= []).push(i); });
+  DB.orcamento_itens = porOrc;
 }
 async function fetchGaleria(){
   const { data, error } = await supabaseClient.from('galeria').select('*').order('criado_em', { ascending:false });
@@ -1611,6 +1633,15 @@ function renderClienteIndicar(){
   const msg = `Oi! Estou usando o app da Zago Auto Service pra agendar serviços do meu carro, é bem prático. Usa meu código ${meuCodigo} quando for se cadastrar: ${linkApp}`;
   document.getElementById('cli-indicar-whats').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
 
+  const c2 = DB.clientes[SESSION.userId];
+  const meusPontos = (c2 && c2.pontos) || 0;
+  const pontosEl = document.getElementById('cli-total-pontos');
+  if(pontosEl) pontosEl.textContent = meusPontos;
+  document.querySelectorAll('.ponto-resgate').forEach(btn=>{
+    btn.disabled = meusPontos < Number(btn.dataset.custo);
+    btn.style.opacity = btn.disabled ? .45 : 1;
+  });
+
   const meusCupons = (DB.cupons||[]).filter(cp=>cp.cliente_id===SESSION.userId);
   const cuponsEl = document.getElementById('cli-meus-cupons');
   if(cuponsEl){
@@ -1623,6 +1654,16 @@ function renderClienteIndicar(){
         `).join('')
       : '<div class="small" style="color:var(--grey)">Nenhum cupom no momento.</div>';
   }
+}
+
+async function resgatarPontos(custo){
+  if(!confirm(`Trocar ${custo} pontos por um cupom de desconto?`)) return;
+  const { data: codigo, error } = await supabaseClient.rpc('resgatar_pontos_cupom', { p_custo_pontos: custo });
+  if(error){ toast('Erro: '+error.message); return; }
+  toast('Cupom gerado: '+codigo);
+  await fetchClientes();
+  await fetchCupons();
+  renderClienteIndicar();
 }
 
 function cliTab(name){
@@ -2234,14 +2275,14 @@ function renderClienteOrcamentos(){
     <div class="card">
       <div class="row1">
         <h3>${esc(o.veiculo)}</h3>
-        <span class="badge ${o.status==='Aprovado'?'finalizado':o.status==='Enviado'?'execucao':'recebido'}">${esc(o.status)}</span>
+        <span class="badge ${o.status==='Aprovado'?'finalizado':(o.status==='Enviado'||o.status==='Aprovado parcialmente')?'execucao':'recebido'}">${esc(o.status)}</span>
       </div>
       <div class="small">${esc(o.descricao)}</div>
       ${o.desconto_indicacao ? `<div class="small" style="color:var(--gold);font-weight:700;margin-top:4px">🎁 Cupom de indicação aplicado (12% na mão de obra)</div>` : ''}
       ${o.valor ? `<div style="margin-top:8px;color:var(--gold);font-weight:800;">R$ ${Number(o.valor).toFixed(2)}</div>` : ''}
       ${o.pago ? `<div class="small" style="color:var(--ok);font-weight:700;margin-top:4px">✅ Pagamento confirmado em ${new Date(o.pago_em).toLocaleDateString('pt-BR')}</div>` : ''}
       ${o.status==='Enviado' ? `<button class="btn secondary" style="margin-top:10px" onclick="abrirAprovacaoOrcamento('${esc(o.id)}')">Aprovar orçamento</button>` : ''}
-      ${o.status==='Aprovado' ? `<button class="btn ghost" style="margin-top:10px" onclick="abrirPagamentoOrcamento('${esc(o.id)}')">💳 Ver forma de pagamento</button>` : ''}
+      ${(o.status==='Aprovado'||o.status==='Aprovado parcialmente') ? `<button class="btn ghost" style="margin-top:10px" onclick="abrirPagamentoOrcamento('${esc(o.id)}')">💳 Ver forma de pagamento</button>` : ''}
     </div>
   `).join('');
 }
@@ -2471,12 +2512,39 @@ function copiarCodigoPix(){
 let ORC_APROVACAO_ID = null;
 let assinaturaOrcCtx = null;
 
+function atualizarSubtotalAprovacao(id){
+  const itens = DB.orcamento_itens[id] || [];
+  const orc = DB.orcamentos.find(o=>o.id===id);
+  const marcados = itens.filter(i => document.getElementById('aprov-item-'+i.id)?.checked);
+  const subtotal = marcados.reduce((s,i)=>s+Number(i.valor||0), 0);
+  const valorFinal = orc?.desconto_indicacao ? +(subtotal*0.88).toFixed(2) : subtotal;
+  const el = document.getElementById('aprov-subtotal');
+  if(el) el.textContent = 'R$ ' + valorFinal.toFixed(2) + (marcados.length < itens.length ? ' (itens selecionados)' : '');
+}
+
 function abrirAprovacaoOrcamento(id){
   const o = DB.orcamentos.find(x=>x.id===id);
   if(!o) return;
   ORC_APROVACAO_ID = id;
-  document.getElementById('aprovar-orc-resumo').innerHTML =
-    `<strong>${esc(o.veiculo)}</strong><br>${esc(o.descricao)}<br><span style="color:var(--gold);font-weight:800;font-size:16px">R$ ${Number(o.valor).toFixed(2)}</span>`;
+  const itens = DB.orcamento_itens[id] || [];
+  if(itens.length){
+    document.getElementById('aprovar-orc-resumo').innerHTML = `
+      <strong>${esc(o.veiculo)}</strong>
+      <p class="small" style="margin:6px 0 10px">Marque os itens que você quer aprovar agora. Pode deixar algum de fora.</p>
+      ${itens.map(i=>`
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer">
+          <input type="checkbox" id="aprov-item-${i.id}" checked onchange="atualizarSubtotalAprovacao('${id}')">
+          <span style="flex:1">${esc(i.descricao)}</span>
+          <span>R$ ${Number(i.valor).toFixed(2)}</span>
+        </label>
+      `).join('')}
+      <div style="text-align:right;margin-top:10px;font-weight:800;color:var(--gold);font-size:16px" id="aprov-subtotal"></div>
+    `;
+    atualizarSubtotalAprovacao(id);
+  } else {
+    document.getElementById('aprovar-orc-resumo').innerHTML =
+      `<strong>${esc(o.veiculo)}</strong><br>${esc(o.descricao)}<br><span style="color:var(--gold);font-weight:800;font-size:16px">R$ ${Number(o.valor).toFixed(2)}</span>`;
+  }
 
   const c = DB.clientes[SESSION.userId];
   const cpfInput = document.getElementById('aprovar-orc-cpf');
@@ -2526,17 +2594,33 @@ async function confirmarAprovacaoOrcamento(){
   if(pixelsEmBranco){ toast('Assine no campo indicado antes de confirmar'); return; }
 
   const id = ORC_APROVACAO_ID;
-  const { error } = await supabaseClient.from('orcamentos').update({
-    status: 'Aprovado',
-    cpf_cliente: cpf,
-    assinatura_aprovacao: assinaturaDataUrl
-  }).eq('id', id);
+  const itens = DB.orcamento_itens[id] || [];
+  const orc = DB.orcamentos.find(o=>o.id===id);
+  let updateOrcamento = { cpf_cliente: cpf, assinatura_aprovacao: assinaturaDataUrl };
+
+  if(itens.length){
+    const marcados = itens.filter(i => document.getElementById('aprov-item-'+i.id)?.checked);
+    if(!marcados.length){ toast('Marque pelo menos um item para aprovar'); return; }
+    const idsAprovados = new Set(marcados.map(i=>i.id));
+    for(const i of itens){
+      await supabaseClient.from('orcamento_itens').update({ aprovado: idsAprovados.has(i.id) }).eq('id', i.id);
+    }
+    const subtotal = marcados.reduce((s,i)=>s+Number(i.valor||0), 0);
+    const valorFinal = orc?.desconto_indicacao ? +(subtotal*0.88).toFixed(2) : subtotal;
+    updateOrcamento.status = marcados.length < itens.length ? 'Aprovado parcialmente' : 'Aprovado';
+    updateOrcamento.valor = valorFinal;
+    updateOrcamento.descricao = marcados.map(i=>`• ${i.descricao} — R$ ${Number(i.valor).toFixed(2)}`).join('\n');
+  } else {
+    updateOrcamento.status = 'Aprovado';
+  }
+
+  const { error } = await supabaseClient.from('orcamentos').update(updateOrcamento).eq('id', id);
 
   if(error){ toast('Erro ao aprovar: ' + error.message); return; }
 
   await supabaseClient.from('clientes').update({ cpf }).eq('id', SESSION.userId);
 
-  toast('Orçamento aprovado!');
+  toast(updateOrcamento.status === 'Aprovado parcialmente' ? 'Itens selecionados aprovados!' : 'Orçamento aprovado!');
   fecharModalAprovacaoOrcamento();
   await fetchTudo();
   abrirPagamentoOrcamento(id);
@@ -3172,16 +3256,27 @@ function renderEqOrcamentos(){
     <div class="card">
       <div class="row1">
         <h3>${esc(cliente ? cliente.nome : o.fone)}</h3>
-        <span class="badge ${o.status==='Aprovado'?'finalizado':o.status==='Enviado'?'execucao':'recebido'}">${esc(o.status)}</span>
+        <span class="badge ${o.status==='Aprovado'?'finalizado':(o.status==='Enviado'||o.status==='Aprovado parcialmente')?'execucao':'recebido'}">${esc(o.status)}</span>
       </div>
       <div class="small">${esc(o.veiculo)}</div>
       ${o.desconto_indicacao ? `<div class="small" style="color:var(--gold);font-weight:700;margin-top:4px">🎁 Cliente tem cupom de indicação — 12% de desconto na mão de obra será aplicado automaticamente</div>` : ''}
       ${o.pago ? `<div class="small" style="color:var(--ok);font-weight:700;margin-top:4px">✅ Pago em ${new Date(o.pago_em).toLocaleDateString('pt-BR')}</div>` : ''}
-      <label style="margin-bottom:0;margin-top:8px">Descrição do serviço</label>
-      <textarea id="desc-${oid}" style="min-height:70px">${esc(descAtual)}</textarea>
-      <label style="margin-bottom:0">Valor da mão de obra (R$)</label>
-      <input type="number" id="val-${oid}" value="${esc(valAtual)}" placeholder="0.00" oninput="atualizarPreviaDesconto('${oid}', ${o.desconto_indicacao ? 'true':'false'})">
+      <label style="margin-bottom:0;margin-top:8px">Descrição do serviço${(DB.orcamento_itens[o.id]||[]).length ? ' <span style="color:var(--grey);font-weight:400">(preenchida pelos itens abaixo)</span>' : ''}</label>
+      <textarea id="desc-${oid}" style="min-height:70px" ${(DB.orcamento_itens[o.id]||[]).length ? 'disabled' : ''}>${esc(descAtual)}</textarea>
+      <label style="margin-bottom:0">Valor da mão de obra (R$)${(DB.orcamento_itens[o.id]||[]).length ? ' <span style="color:var(--grey);font-weight:400">(soma dos itens)</span>' : ''}</label>
+      <input type="number" id="val-${oid}" value="${esc(valAtual)}" placeholder="0.00" oninput="atualizarPreviaDesconto('${oid}', ${o.desconto_indicacao ? 'true':'false'})" ${(DB.orcamento_itens[o.id]||[]).length ? 'disabled' : ''}>
       <div class="small" id="previa-desconto-${oid}" style="margin-top:4px;color:var(--gold)"></div>
+
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+        <div class="small" style="color:var(--grey);margin-bottom:6px">Itens do orçamento (opcional — cliente pode aprovar só parte)</div>
+        <div id="itens-orc-${oid}">${itensOrcHtml(oid)}</div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input id="novo-item-desc-${oid}" placeholder="Descrição do item" style="flex:2">
+          <input id="novo-item-valor-${oid}" type="number" step="0.01" placeholder="R$" style="flex:1">
+          <button class="btn ghost" style="width:auto;margin:0;padding:8px 12px;flex-shrink:0" onclick="adicionarItemOrcamento('${oid}')">+ Item</button>
+        </div>
+      </div>
+
       <div style="display:flex;gap:8px;margin-top:10px">
         <button class="btn secondary" style="margin:0" onclick="salvarOrcamento('${oid}')">Salvar</button>
         <button class="btn" style="margin:0" onclick="enviarOrcamentoWhatsApp('${oid}')">Enviar via WhatsApp</button>
@@ -3195,8 +3290,63 @@ function renderEqOrcamentos(){
 }
 
 
+function itensOrcHtml(orcId){
+  const itens = DB.orcamento_itens[orcId] || [];
+  if(!itens.length) return '';
+  const total = itens.reduce((s,i)=>s+Number(i.valor||0), 0);
+  return `<div style="margin-bottom:6px">${itens.map(i=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12.5px;border-bottom:1px solid var(--line)">
+      <span>${esc(i.descricao)}</span>
+      <span style="display:flex;align-items:center;gap:8px;white-space:nowrap">
+        R$ ${Number(i.valor).toFixed(2)}
+        <button onclick="removerItemOrcamento(${i.id},'${orcId}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px">✕</button>
+      </span>
+    </div>`).join('')}
+    <div style="text-align:right;font-weight:800;color:var(--gold);padding-top:6px;font-size:13px">Total: R$ ${total.toFixed(2)}</div>
+  </div>`;
+}
+
+async function adicionarItemOrcamento(orcId){
+  const descInput = document.getElementById('novo-item-desc-'+orcId);
+  const valInput = document.getElementById('novo-item-valor-'+orcId);
+  const descricao = descInput.value.trim();
+  const valor = Number(valInput.value);
+  if(!descricao || !valor){ toast('Preencha a descrição e o valor do item'); return; }
+  const ordem = (DB.orcamento_itens[orcId]||[]).length;
+  const { error } = await supabaseClient.from('orcamento_itens').insert({ orcamento_id: orcId, descricao, valor, ordem });
+  if(error){ toast('Erro ao adicionar item: '+error.message); return; }
+  descInput.value=''; valInput.value='';
+  await fetchOrcamentoItens();
+  renderEqOrcamentos();
+}
+
+async function removerItemOrcamento(itemId, orcId){
+  const { error } = await supabaseClient.from('orcamento_itens').delete().eq('id', itemId);
+  if(error){ toast('Erro ao remover item: '+error.message); return; }
+  await fetchOrcamentoItens();
+  renderEqOrcamentos();
+}
+
+// Quando o orçamento tem itens, a descrição e o valor enviados ao
+// cliente são recalculados a partir deles (o texto/valor digitados nos
+// campos manuais deixam de valer, para não haver duas fontes diferentes).
+function obterDescricaoEValorOrcamento(id){
+  const itens = DB.orcamento_itens[id] || [];
+  if(itens.length){
+    return {
+      descricao: itens.map(i=>`• ${i.descricao} — R$ ${Number(i.valor).toFixed(2)}`).join('\n'),
+      valDigitado: itens.reduce((s,i)=>s+Number(i.valor||0), 0)
+    };
+  }
+  return {
+    descricao: document.getElementById('desc-'+id).value.trim(),
+    valDigitado: Number(document.getElementById('val-'+id).value)
+  };
+}
+
 function calcularValorFinalOrcamento(id){
-  const valDigitado = Number(document.getElementById('val-'+id).value);
+
+  const { valDigitado } = obterDescricaoEValorOrcamento(id);
   const orc = DB.orcamentos.find(o=>o.id===id);
   const temDesconto = orc ? orc.desconto_indicacao : false;
   const valorFinal = temDesconto ? +(valDigitado * 0.88).toFixed(2) : valDigitado;
@@ -3212,7 +3362,7 @@ async function marcarOrcamentoPago(id){
   registrarLog('Orçamento marcado como pago', `${clienteNome ? clienteNome+' — ' : ''}R$ ${Number(orc?.valor||0).toFixed(2)}`);
 }
 async function salvarOrcamento(id){
-  const descricao = document.getElementById('desc-'+id).value.trim();
+  const descricao = obterDescricaoEValorOrcamento(id).descricao;
   const { valDigitado, temDesconto, valorFinal } = calcularValorFinalOrcamento(id);
   if(!valDigitado){ toast('Informe um valor'); return; }
   const { error } = await supabaseClient.from('orcamentos').update({ descricao, valor: valorFinal, status: 'Enviado' }).eq('id', id);
@@ -3226,7 +3376,7 @@ async function salvarOrcamento(id){
 }
 
 async function enviarOrcamentoWhatsApp(id){
-  const descricao = document.getElementById('desc-'+id).value.trim();
+  const descricao = obterDescricaoEValorOrcamento(id).descricao;
   const { valDigitado, temDesconto, valorFinal } = calcularValorFinalOrcamento(id);
   if(!valDigitado){ toast('Informe um valor antes de enviar'); return; }
 
