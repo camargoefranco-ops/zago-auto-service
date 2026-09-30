@@ -508,7 +508,9 @@
   .eq-gerar-cupom button{
     background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;
     padding:0 16px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;
-  }
+  }  .badge.cancelado{background:#3a1e1e;color:var(--danger);}
+  .acoes-agendamento{display:flex;gap:8px;margin-top:12px;}
+  .acoes-agendamento .btn{margin-top:0;padding:10px;font-size:13px;}
 </style>
 </head>
 <body>
@@ -884,11 +886,12 @@
           <div class="small" style="margin-bottom:6px">Seu código de indicação</div>
           <div id="cli-codigo-indicacao" style="font-size:26px;font-weight:900;color:var(--gold);letter-spacing:1px;"></div>
         </div>
-        <p class="sub">Compartilhe seu código com amigos. A cada <strong style="color:var(--white)">3 indicações</strong>, você ganha <strong style="color:var(--white)">10% de desconto</strong> na próxima revisão (é só confirmar com a equipe).</p>
+        <p class="sub">Compartilhe seu código com amigos. A cada <strong style="color:var(--white)">3 indicações</strong>, você ganha automaticamente um cupom de <strong style="color:var(--white)">10% de desconto</strong>. Ele aparece aqui embaixo, em "Meus cupons".</p>
         <a id="cli-indicar-whats" href="#" target="_blank" rel="noopener" class="btn" style="display:block;text-align:center;text-decoration:none;">Convidar pelo WhatsApp</a>
         <div class="card" style="margin-top:16px;text-align:center;">
           <div class="small">Amigos indicados por você</div>
           <div id="cli-total-indicados" style="font-size:28px;font-weight:900;color:var(--white);margin-top:4px;">0</div>
+          <div class="small" id="cli-faltam-indicacoes" style="margin-top:6px;color:var(--gold);font-weight:700"></div>
         </div>
         <h3 style="margin-top:22px;font-size:14px;color:var(--grey)">Meus pontos</h3>
         <div class="card" style="text-align:center;padding:18px 16px;">
@@ -946,7 +949,25 @@
         <button class="chip" data-f="pendentes" onclick="eqFiltrar('pendentes')">Pendentes</button>
         <button class="chip" data-f="pronto" onclick="eqFiltrar('pronto')">Prontos p/ retirada</button>
         <button class="chip" data-f="finalizado" onclick="eqFiltrar('finalizado')">Finalizados</button>
+        <button class="chip" data-f="cancelado" onclick="eqFiltrar('cancelado')">Cancelados</button>
       </div>
+
+      <details class="privacy-box" style="margin-top:12px">
+        <summary>📅 Dias fechados da oficina</summary>
+        <div id="eq-bloqueios-lista" style="margin-top:8px"></div>
+        <label>Fechar uma data (feriado, folga, viagem)</label>
+        <input type="date" id="bloq-data">
+        <input id="bloq-motivo" placeholder="Motivo (opcional)" style="margin-top:8px">
+        <button class="btn secondary" style="margin-top:10px" onclick="adicionarBloqueioData()">Fechar essa data</button>
+        <label style="margin-top:14px">Ou fechar um dia da semana, sempre</label>
+        <select id="bloq-semana">
+          <option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option>
+          <option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option>
+        </select>
+        <button class="btn secondary" style="margin-top:10px" onclick="adicionarBloqueioSemana()">Fechar todo esse dia da semana</button>
+        <p style="margin:10px 0 0">Dia fechado não aparece para o cliente agendar. Agendamentos já marcados nesse dia continuam na agenda.</p>
+      </details>
+
       <div id="eq-agenda-list" style="margin-top:12px"></div>
     </div>
 
@@ -1046,7 +1067,7 @@
 
 <script>
 /* ---------------- VERSÃO ---------------- */
-const APP_VERSAO = '2.0';
+const APP_VERSAO = '2.1';
 document.getElementById('app-versao').textContent = 'v' + APP_VERSAO;
 
 /* ---------------- SEGURANÇA: escape de texto vindo do usuário ----------------
@@ -1244,7 +1265,8 @@ let DB = {
   ordens_servico: [],
   os_fotos: {},      // os_id -> array de fotos
   os_historico: {},  // os_id -> array de alterações
-  orcamento_itens: {} // orcamento_id -> array de itens
+  orcamento_itens: {}, // orcamento_id -> array de itens
+  bloqueios: []        // dias fechados da oficina (agenda_bloqueios)
 };
 let SESSION = { role:null, userId:null, fone:null, nome:null };
 let ORC_DEEPLINK_ID = null;
@@ -1332,8 +1354,16 @@ async function fetchOrdensServico(){
   await fetchOsHistorico();
   renderEqOS();
 }
+async function fetchBloqueios(){
+  try{
+    const { data, error } = await supabaseClient.from('agenda_bloqueios').select('*').order('criado_em');
+    if(error){ console.error('agenda_bloqueios:', error.message); DB.bloqueios = []; }
+    else DB.bloqueios = data || [];
+  }catch(e){ DB.bloqueios = []; }
+  rerenderVisivel();
+}
 async function fetchTudo(){
-  await Promise.all([fetchClientes(), fetchAgendamentos(), fetchOrcamentos(), fetchGaleria(), fetchAvaliacoes(), fetchCupons(), fetchOrdensServico()]);
+  await Promise.all([fetchClientes(), fetchAgendamentos(), fetchOrcamentos(), fetchGaleria(), fetchAvaliacoes(), fetchCupons(), fetchOrdensServico(), fetchBloqueios()]);
 }
 
 /* ---------------- TEMPO REAL ---------------- */
@@ -1348,6 +1378,7 @@ function subscribeRealtime(){
   supabaseClient.channel('rt-os').on('postgres_changes', {event:'*', schema:'public', table:'ordens_servico'}, fetchOrdensServico).subscribe();
   supabaseClient.channel('rt-os-fotos').on('postgres_changes', {event:'*', schema:'public', table:'os_fotos'}, fetchOsFotos).subscribe();
   supabaseClient.channel('rt-os-historico').on('postgres_changes', {event:'*', schema:'public', table:'os_historico'}, fetchOsHistorico).subscribe();
+  supabaseClient.channel('rt-bloqueios').on('postgres_changes', {event:'*', schema:'public', table:'agenda_bloqueios'}, fetchBloqueios).subscribe();
 }
 
 function renderGaleriaHome(){
@@ -1412,15 +1443,24 @@ function rerenderVisivel(){
     renderEqClientes();
     renderEqFotos();
     renderEqOS();
+    renderEqBloqueios();
   }
 }
 
 const STATUS_STEPS = ['Recebido','Em diagnóstico','Aguardando aprovação','Em execução','Finalizado','Pronto para retirada'];
 const STATUS_CLASS = {
   'Recebido':'recebido','Em diagnóstico':'diagnostico','Aguardando aprovação':'aprovacao',
-  'Em execução':'execucao','Finalizado':'finalizado','Pronto para retirada':'pronto'
+  'Em execução':'execucao','Finalizado':'finalizado','Pronto para retirada':'pronto','Cancelado':'cancelado'
 };
 let EQ_FILTRO = 'todos';
+
+/* Link para o cliente avaliar a oficina no Google.
+   Se você tiver o link direto de avaliação do Google Meu Negócio, cole entre as aspas.
+   Enquanto estiver vazio, abre a oficina no Google Maps, onde o cliente avalia. */
+const GOOGLE_AVALIACAO_URL = '';
+function googleAvaliacaoUrl(){
+  return GOOGLE_AVALIACAO_URL || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Zago Auto Service R. Narciso Baldini 480 Jaú SP'));
+}
 
 function toast(msg){
   const t = document.createElement('div');
@@ -1607,7 +1647,7 @@ function abrirOrcamentoPendenteDeeplink(){
   ORC_DEEPLINK_ID = null;
   const o = (DB.orcamentos || []).find(x=>x.id===id);
   if(!o) return;
-  if(o.status==='Aprovado' && !o.pago){
+  if((o.status==='Aprovado' || o.status==='Aprovado parcialmente') && !o.pago){
     abrirPagamentoOrcamento(id);
   } else if(o.status==='Enviado'){
     abrirAprovacaoOrcamento(id);
@@ -1628,6 +1668,10 @@ function renderClienteIndicar(){
   codigoEl.textContent = meuCodigo;
   supabaseClient.rpc('contar_indicados', { indicador_id: SESSION.userId }).then(({data})=>{
     document.getElementById('cli-total-indicados').textContent = data || 0;
+    const n = Number(data) || 0;
+    const falta = 3 - (n % 3);
+    const faltamEl = document.getElementById('cli-faltam-indicacoes');
+    if(faltamEl) faltamEl.textContent = 'Faltam ' + falta + ' indicaç' + (falta > 1 ? 'ões' : 'ão') + ' para o próximo cupom de 10%';
   });
   const linkApp = window.location.origin + window.location.pathname + '#cliente';
   const msg = `Oi! Estou usando o app da Zago Auto Service pra agendar serviços do meu carro, é bem prático. Usa meu código ${meuCodigo} quando for se cadastrar: ${linkApp}`;
@@ -1726,6 +1770,7 @@ function agCalcularFimMin(inicioMin, duracaoMin){
 }
 
 function agDuracaoAtual(){
+  if(agData.duracaoFixa) return agData.duracaoFixa; // remarcação: mantém a duração do agendamento original
   const chave = agData.servicoBase || agData.servico;
   return DURACAO_SERVICO[chave] || DURACAO_PADRAO_CATEGORIA[agData.categoria] || 60;
 }
@@ -1737,6 +1782,13 @@ function agDuracaoExistente(a){
 
 // Para o cliente usa a lista de horários ocupados de todos (sem dados pessoais);
 // a equipe já enxerga todos os agendamentos.
+function agDiaBloqueado(iso){
+  const dow = new Date(iso + 'T00:00:00').getDay();
+  return (DB.bloqueios || []).some(b =>
+    (b.tipo === 'data' && b.data === iso) ||
+    (b.tipo === 'semana' && Number(b.dia_semana) === dow));
+}
+
 function agIntervalosOcupados(iso){
   const base = (SESSION.role==='cliente' && DB.ocupados) ? DB.ocupados : DB.agendamentos;
   return base
@@ -1751,6 +1803,7 @@ function agIntervalosOcupados(iso){
 function agAgoraMin(){ const n = new Date(); return n.getHours()*60 + n.getMinutes(); }
 
 function agHorarioLivre(iso, inicioMin, duracaoMin){
+  if(agDiaBloqueado(iso)) return false; // dia fechado pela oficina
   if(inicioMin < AG_ABERTURA || inicioMin >= AG_FECHAMENTO) return false;
   if(inicioMin >= AG_ALMOCO_INI && inicioMin < AG_ALMOCO_FIM) return false;
   if(iso === agISOLocal(new Date()) && inicioMin <= agAgoraMin()) return false; // não oferece horário que já passou hoje
@@ -1768,7 +1821,7 @@ function agHorariosDoDia(iso, duracaoMin){
 }
 
 function agResetWizard(){
-  agData = { categoria:null, modelo:null, ano:null, placa:null, veiculo:null, veiculoLabel:'', servicoBase:null, servico:null, tamanho:null, data:null, hora:null };
+  agData = { remarcarId:null, duracaoFixa:null, categoria:null, modelo:null, ano:null, placa:null, veiculo:null, veiculoLabel:'', servicoBase:null, servico:null, tamanho:null, data:null, hora:null };
   ['ag-v-modelo','ag-v-ano','ag-v-placa','ag-hora-custom','ag-obs','ag-detalhe-texto','ag-codigo-indicacao'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
@@ -1792,7 +1845,10 @@ function agIrParaPasso(n){
   if(n===8) renderAgResumo();
 }
 function agAvancar(n){ agIrParaPasso(n); }
-function agVoltar(n){ agIrParaPasso(n); }
+function agVoltar(n){
+  if(agData.remarcarId && n===5){ cliTab('status'); return; } // remarcando: voltar leva de volta ao Status
+  agIrParaPasso(n);
+}
 
 const SERVICOS_POR_CATEGORIA = {
   'Elétrica': ['Alternador', 'Motor de arranque', 'Reparo de chicote'],
@@ -1949,7 +2005,7 @@ function renderAgStep3Calendario(){
     return `<button class="calday ${cheio?'full':''}" ${cheio?'disabled':''} onclick="agEscolherDia('${iso}')">
       <span class="calwd">${wds[d.getDay()]}</span>
       <span class="calnum">${d.getDate()}/${d.getMonth()+1}</span>
-      ${cheio?'<span class="calnote">sem horários</span>':''}
+      ${cheio?`<span class="calnote">${agDiaBloqueado(iso)?'fechado':'sem horários'}</span>`:''}
     </button>`;
   }).join('');
   el.className = 'wizcalendar';
@@ -2226,6 +2282,18 @@ async function criarAgendamento(){
     agVoltar(7); renderAgStep4Horarios();
     return;
   }
+
+  if(agData.remarcarId){
+    const { error: errRem } = await supabaseClient.rpc('cliente_remarcar_agendamento', {
+      p_id: agData.remarcarId, p_data: data, p_hora: hora
+    });
+    if(errRem){ toast('Não foi possível remarcar: ' + errRem.message); return; }
+    toast('Agendamento remarcado!');
+    await fetchAgendamentos();
+    cliTab('status');
+    return;
+  }
+
   let obs = document.getElementById('ag-obs').value;
 
   const codigoIndicacao = (document.getElementById('ag-codigo-indicacao')?.value || '').trim().toUpperCase();
@@ -2287,6 +2355,30 @@ function renderClienteOrcamentos(){
   `).join('');
 }
 
+async function clienteCancelarAgendamento(id){
+  if(!confirm('Cancelar este agendamento? O horário volta a ficar livre para outros clientes.')) return;
+  const { error } = await supabaseClient.rpc('cliente_cancelar_agendamento', { p_id: id });
+  if(error){ toast('Não foi possível cancelar: ' + error.message); return; }
+  toast('Agendamento cancelado');
+  await fetchAgendamentos();
+}
+function clienteIniciarRemarcacao(id){
+  const a = DB.agendamentos.find(x => x.id === id);
+  if(!a) return;
+  const c = DB.clientes[SESSION.userId];
+  const v = c ? (c.veiculos || []).find(x => x.placa === a.veiculo) : null;
+  cliTab('agendar');
+  agData.remarcarId = id;
+  agData.categoria = 'Manutenção mecânica';
+  agData.veiculo = a.veiculo;
+  agData.placa = a.veiculo;
+  agData.veiculoLabel = (v ? v.modelo : 'Veículo') + ' — ' + a.veiculo;
+  agData.servico = a.servico;
+  agData.tamanho = a.tamanho;
+  agData.duracaoFixa = agDuracaoExistente(a);
+  agIrParaStep6();
+}
+
 function renderClienteStatus(){
   const list = DB.agendamentos.filter(a=>a.cliente_id===SESSION.userId);
   const el = document.getElementById('cli-status-list');
@@ -2303,9 +2395,19 @@ function renderClienteStatus(){
     if(finalizado){
       const existente = (DB.avaliacoes||[]).find(av => av.agendamento_id===a.id);
       if(existente){
-        avaliacaoHtml = `<div class="rate-readonly">Você avaliou: <span class="stars-fixed">${estrelasFixas(existente.nota)}</span>${existente.comentario?`<br>"${esc(existente.comentario)}"`:''}</div>`;
+        avaliacaoHtml = `<div class="rate-readonly">Você avaliou: <span class="stars-fixed">${estrelasFixas(existente.nota)}</span>${existente.comentario?`<br>"${esc(existente.comentario)}"`:''}${Number(existente.nota)>=4 ? `<br><a href="${esc(googleAvaliacaoUrl())}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700">⭐ Avaliar também no Google</a>` : ''}</div>`;
       }
     }
+
+    const podeAlterar = a.status === 'Recebido' && String(a.data) >= agISOLocal(new Date());
+    const acoesHtml = podeAlterar ? `
+      <div class="acoes-agendamento">
+        <button class="btn secondary" onclick="clienteIniciarRemarcacao('${esc(a.id)}')">📅 Remarcar</button>
+        <button class="btn ghost" style="color:var(--danger);border-color:var(--danger)" onclick="clienteCancelarAgendamento('${esc(a.id)}')">Cancelar</button>
+      </div>` : '';
+    const corpoStatus = a.status === 'Cancelado'
+      ? '<div class="small" style="margin-top:10px;color:var(--danger);font-weight:700">Agendamento cancelado.</div>'
+      : `<div class="timeline">${steps}</div>`;
 
     return `
     <div class="card">
@@ -2314,7 +2416,8 @@ function renderClienteStatus(){
         <span class="badge ${STATUS_CLASS[a.status]||'recebido'}">${esc(a.status)}</span>
       </div>
       <div class="small">${esc(a.veiculo)} • ${esc(a.data)} ${esc(a.hora)}</div>
-      <div class="timeline">${steps}</div>
+      ${corpoStatus}
+      ${acoesHtml}
       ${avaliacaoHtml}
     </div>`;
   }).join('');
@@ -2333,6 +2436,8 @@ function verificarAvaliacaoPendente(){
   document.getElementById('modal-rate-stars').dataset.nota = 0;
   document.querySelectorAll('#modal-rate-stars span').forEach(s=>s.classList.remove('active'));
   document.getElementById('modal-aval-comentario').value = '';
+  document.getElementById('modal-aval-form').classList.remove('hide');
+  document.getElementById('modal-aval-google').classList.add('hide');
   document.getElementById('modal-avaliacao').classList.remove('hide');
 }
 function modalSelecionarNota(nota){
@@ -2352,6 +2457,12 @@ async function modalEnviarAvaliacao(){
     veiculo: a.veiculo, servico: a.servico, nota, comentario, nome_cliente: (SESSION.nome||'').split(' ')[0]
   });
   if(error){ toast('Erro ao enviar avaliação: '+error.message); return; }
+  if(nota >= 4){
+    document.getElementById('modal-aval-google-link').href = googleAvaliacaoUrl();
+    document.getElementById('modal-aval-form').classList.add('hide');
+    document.getElementById('modal-aval-google').classList.remove('hide');
+    return;
+  }
   toast('Obrigado pela avaliação!');
   fecharModalAvaliacao();
 }
@@ -2711,8 +2822,8 @@ function renderEqResumo(){
   if(!el) return;
   const hojeISO = agISOLocal(new Date()); // data local (toISOString usa UTC e errava depois das 21h)
   const todos = DB.agendamentos || [];
-  const hoje = todos.filter(a=>a.data===hojeISO).length;
-  const pendentes = todos.filter(a=>a.status!=='Finalizado' && a.status!=='Pronto para retirada').length;
+  const hoje = todos.filter(a=>a.data===hojeISO && a.status!=='Cancelado').length;
+  const pendentes = todos.filter(a=>a.status!=='Finalizado' && a.status!=='Pronto para retirada' && a.status!=='Cancelado').length;
   const orcAbertos = (DB.orcamentos||[]).filter(o=>o.status==='Pendente').length;
   const totalClientes = Object.keys(DB.clientes||{}).length;
   el.innerHTML = `
@@ -3122,9 +3233,64 @@ function eqFiltrar(f){
   renderEqAgenda();
 }
 
+function botaoLembreteWhats(x, tipo){
+  const digitos = String(x.fone || '').replace(/\D/g, '');
+  if(!digitos) return '';
+  const fone = digitos.length <= 11 ? '55' + digitos : digitos;
+  const nome = String(x.cliente || '').split(' ')[0];
+  const oque = tipo === 'oleo' ? 'a troca de óleo' : 'a revisão preventiva';
+  const quando = x.info.status === 'vencida' ? 'está vencida desde ' + x.info.proximaBR : 'vence em ' + x.info.proximaBR;
+  const msg = `Olá${nome ? ', ' + nome : ''}! Aqui é da Zago Auto Service. Passando para avisar que ${oque} do seu ${x.veiculo} (${x.placa}) ${quando}. Quer agendar um horário? É só abrir o app: ${window.location.origin + window.location.pathname}#cliente`;
+  return `<a href="https://wa.me/${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:800;text-decoration:none;white-space:nowrap">💬 Chamar</a>`;
+}
+
+/* ---------------- Dias fechados (equipe) ---------------- */
+const NOMES_DIAS_SEMANA = ['Domingos','Segundas','Terças','Quartas','Quintas','Sextas','Sábados'];
+function renderEqBloqueios(){
+  const el = document.getElementById('eq-bloqueios-lista');
+  if(!el) return;
+  const lista = DB.bloqueios || [];
+  el.innerHTML = lista.length ? lista.map(b => `
+    <div class="eq-cupom-item">
+      <span>${b.tipo === 'semana' ? 'Sempre fechado: ' + esc(NOMES_DIAS_SEMANA[Number(b.dia_semana)] || '') : esc(String(b.data).split('-').reverse().join('/'))}${b.motivo ? ' — ' + esc(b.motivo) : ''}</span>
+      <button class="btn ghost" style="width:auto;padding:4px 10px;font-size:10px;margin:0;" onclick="removerBloqueio('${esc(b.id)}')">Reabrir</button>
+    </div>`).join('') : '<div class="small">Nenhum dia fechado.</div>';
+}
+async function adicionarBloqueioData(){
+  const data = document.getElementById('bloq-data').value;
+  const motivo = document.getElementById('bloq-motivo').value.trim();
+  if(!data){ toast('Escolha a data'); return; }
+  const { error } = await supabaseClient.from('agenda_bloqueios').insert({ tipo:'data', data, motivo: motivo || null });
+  if(error){ toast('Erro ao fechar o dia: ' + error.message); return; }
+  document.getElementById('bloq-data').value = '';
+  document.getElementById('bloq-motivo').value = '';
+  toast('Dia fechado');
+  registrarLog('Dia fechado', data.split('-').reverse().join('/') + (motivo ? ' — ' + motivo : ''));
+  await fetchBloqueios();
+}
+async function adicionarBloqueioSemana(){
+  const dow = Number(document.getElementById('bloq-semana').value);
+  const jaExiste = (DB.bloqueios || []).some(b => b.tipo === 'semana' && Number(b.dia_semana) === dow);
+  if(jaExiste){ toast('Esse dia da semana já está fechado'); return; }
+  const { error } = await supabaseClient.from('agenda_bloqueios').insert({ tipo:'semana', dia_semana: dow });
+  if(error){ toast('Erro ao fechar o dia: ' + error.message); return; }
+  toast('Dia da semana fechado');
+  registrarLog('Dia da semana fechado', NOMES_DIAS_SEMANA[dow]);
+  await fetchBloqueios();
+}
+async function removerBloqueio(id){
+  const { data, error } = await supabaseClient.from('agenda_bloqueios').delete().eq('id', id).select();
+  if(error){ toast('Erro ao reabrir: ' + error.message); return; }
+  if(!data || !data.length){ toast('Não foi possível reabrir (sem permissão no banco).'); return; }
+  toast('Dia reaberto');
+  registrarLog('Dia reaberto', id);
+  await fetchBloqueios();
+}
+
 function renderEqAgenda(){
   let list = [...DB.agendamentos];
-  if(EQ_FILTRO==='pendentes') list = list.filter(a=>a.status!=='Finalizado' && a.status!=='Pronto para retirada');
+  if(EQ_FILTRO==='pendentes') list = list.filter(a=>a.status!=='Finalizado' && a.status!=='Pronto para retirada' && a.status!=='Cancelado');
+  else if(EQ_FILTRO==='cancelado') list = list.filter(a=>a.status==='Cancelado');
   else if(EQ_FILTRO==='pronto') list = list.filter(a=>a.status==='Pronto para retirada');
   else if(EQ_FILTRO==='finalizado') list = list.filter(a=>a.status==='Finalizado');
   const el = document.getElementById('eq-agenda-list');
@@ -3147,13 +3313,13 @@ function renderEqAgenda(){
   if(vencidos.length){
     resumoHtml += `<div class="card" style="border-color:var(--wait);margin-bottom:14px;">
       <h3 style="font-size:13.5px;color:var(--wait)">🛢️ Trocas de óleo vencendo/vencidas (${vencidos.length})</h3>
-      ${vencidos.map(x=>`<div class="small" style="margin-top:4px;">${esc(x.cliente)} — ${esc(x.veiculo)} (${esc(x.placa)}): <strong style="color:${x.info.status==='vencida'?'var(--danger)':'var(--wait)'}">${x.info.status==='vencida'?'vencida há '+Math.abs(x.info.diffDias)+'d':'em '+x.info.diffDias+'d'}</strong></div>`).join('')}
+      ${vencidos.map(x=>`<div class="small" style="margin-top:4px;">${esc(x.cliente)} — ${esc(x.veiculo)} (${esc(x.placa)}): <strong style="color:${x.info.status==='vencida'?'var(--danger)':'var(--wait)'}">${x.info.status==='vencida'?'vencida há '+Math.abs(x.info.diffDias)+'d':'em '+x.info.diffDias+'d'}</strong> ${botaoLembreteWhats(x,'oleo')}</div>`).join('')}
     </div>`;
   }
   if(vencidosRevisao.length){
     resumoHtml += `<div class="card" style="border-color:var(--wait);margin-bottom:14px;">
       <h3 style="font-size:13.5px;color:var(--wait)">🔧 Revisões preventivas vencendo/vencidas (${vencidosRevisao.length})</h3>
-      ${vencidosRevisao.map(x=>`<div class="small" style="margin-top:4px;">${esc(x.cliente)} — ${esc(x.veiculo)} (${esc(x.placa)}): <strong style="color:${x.info.status==='vencida'?'var(--danger)':'var(--wait)'}">${x.info.status==='vencida'?'vencida há '+Math.abs(x.info.diffDias)+'d':'em '+x.info.diffDias+'d'}</strong></div>`).join('')}
+      ${vencidosRevisao.map(x=>`<div class="small" style="margin-top:4px;">${esc(x.cliente)} — ${esc(x.veiculo)} (${esc(x.placa)}): <strong style="color:${x.info.status==='vencida'?'var(--danger)':'var(--wait)'}">${x.info.status==='vencida'?'vencida há '+Math.abs(x.info.diffDias)+'d':'em '+x.info.diffDias+'d'}</strong> ${botaoLembreteWhats(x,'revisao')}</div>`).join('')}
     </div>`;
   }
 
@@ -3163,7 +3329,7 @@ function renderEqAgenda(){
   }
   el.innerHTML = resumoHtml + list.map(a=>{
     const cliente = DB.clientes[a.cliente_id];
-    const opts = STATUS_STEPS.map(s=>`<option value="${s}" ${s===a.status?'selected':''}>${s}</option>`).join('');
+    const opts = [...STATUS_STEPS, 'Cancelado'].map(s=>`<option value="${s}" ${s===a.status?'selected':''}>${s}</option>`).join('');
     return `
     <div class="card">
       <div class="row1">
@@ -3282,7 +3448,7 @@ function renderEqOrcamentos(){
         <button class="btn" style="margin:0" onclick="enviarOrcamentoWhatsApp('${oid}')">Enviar via WhatsApp</button>
       </div>
       <button class="btn ghost" style="margin-top:8px" onclick="gerarOSDeOrcamento('${oid}')">📋 Gerar Ordem de Serviço</button>
-      ${o.status==='Aprovado' && !o.pago ? `<button class="btn secondary" style="margin-top:8px;background:var(--ok);border-color:var(--ok)" onclick="marcarOrcamentoPago('${oid}')">✅ Marcar como pago</button>` : ''}
+      ${(o.status==='Aprovado' || o.status==='Aprovado parcialmente') && !o.pago ? `<button class="btn secondary" style="margin-top:8px;background:var(--ok);border-color:var(--ok)" onclick="marcarOrcamentoPago('${oid}')">✅ Marcar como pago</button>` : ''}
       <button class="btn ghost" style="margin-top:8px;color:var(--danger);border-color:var(--danger)" onclick="excluirOrcamento('${oid}')">🗑️ Excluir orçamento</button>
     </div>`;
   }).join('');
@@ -3744,6 +3910,13 @@ function renderQR(){
 <!-- ============ MODAL: Avaliação automática ============ -->
 <div id="modal-avaliacao" class="modal-overlay hide">
   <div class="modal-box">
+   <div id="modal-aval-google" class="hide" style="text-align:center">
+    <h3>Obrigado pela avaliação! 🙌</h3>
+    <p class="sub" style="margin-top:6px">Que bom que você gostou! Ajude outras pessoas a encontrar a oficina: avalie a Zago no Google. Leva 30 segundos.</p>
+    <a id="modal-aval-google-link" class="btn" href="#" target="_blank" rel="noopener">⭐ Avaliar no Google</a>
+    <span class="modal-close-link" onclick="fecharModalAvaliacao()">Agora não</span>
+   </div>
+   <div id="modal-aval-form">
     <h3>Como foi o seu último serviço?</h3>
     <p class="sub" style="margin-top:0" id="modal-aval-info"></p>
     <div class="rate-stars" id="modal-rate-stars" data-nota="0">
@@ -3756,6 +3929,7 @@ function renderQR(){
     <textarea id="modal-aval-comentario" placeholder="Conte como foi (opcional)" style="min-height:56px;"></textarea>
     <button class="btn secondary" style="margin-top:10px" onclick="modalEnviarAvaliacao()">Enviar avaliação</button>
     <span class="modal-close-link" onclick="fecharModalAvaliacao()">Agora não</span>
+   </div>
   </div>
 </div>
 
