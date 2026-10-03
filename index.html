@@ -3524,7 +3524,9 @@ function calcularValorFinalOrcamento(id){
   const { valDigitado } = obterDescricaoEValorOrcamento(id);
   const orc = DB.orcamentos.find(o=>o.id===id);
   const temDesconto = orc ? orc.desconto_indicacao : false;
-  const valorFinal = temDesconto ? +(valDigitado * 0.88).toFixed(2) : valDigitado;
+  // Se o valor digitado é igual ao já salvo, ele JÁ inclui o desconto (evita aplicar 12% duas vezes ao salvar/reenviar)
+  const jaComDesconto = !!(orc && orc.valor != null && Number(orc.valor) === Number(valDigitado));
+  const valorFinal = (temDesconto && !jaComDesconto) ? +(valDigitado * 0.88).toFixed(2) : valDigitado;
   return { valDigitado, temDesconto, valorFinal };
 }
 
@@ -3565,8 +3567,12 @@ async function enviarOrcamentoWhatsApp(id){
   // Envio AUTOMÁTICO: ao gravar status 'Enviado', a trigger do banco chama o webhook do n8n,
   // e o n8n manda a mensagem (com o link ?orc=ID) pelo WhatsApp via Evolution API.
   // Não abrimos mais o wa.me manualmente (isso gerava mensagem duplicada).
+  // Reenvio: o gatilho do banco só dispara quando o status MUDA para 'Enviado'.
+  // Se já estava 'Enviado', volta para 'Pendente' (não gera aviso) e depois para 'Enviado' (gera aviso).
   if(orc && orc.status==='Enviado'){
-    if(!confirm('Esse orçamento já foi enviado. Atualizar valores? (o cliente só recebe nova mensagem se o status mudar)')) return;
+    if(!confirm('Esse orçamento já foi enviado. Reenviar a mensagem para o cliente agora?')) return;
+    const { error: errVolta } = await supabaseClient.from('orcamentos').update({ status: 'Pendente' }).eq('id', id);
+    if(errVolta){ toast('Erro ao reenviar: '+errVolta.message); return; }
   }
   const { error } = await supabaseClient.from('orcamentos').update({ descricao, valor: valorFinal, status: 'Enviado' }).eq('id', id);
   if(error){ toast('Erro ao enviar: '+error.message); return; }
