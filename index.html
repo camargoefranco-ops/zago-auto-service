@@ -626,7 +626,7 @@
       <div class="cadstep hide" data-cadstep="3">
         <button class="wizback" onclick="cliCadastroIrParaPasso(2)">‹ Voltar</button>
         <label>Senha</label>
-        <input id="cli-senha" type="password" placeholder="Mínimo 6 caracteres">
+        <input id="cli-senha" type="password" placeholder="Mínimo 8 caracteres">
 
         <label style="margin-top:10px">Código de indicação (opcional)</label>
         <input id="cli-codigo-indicacao-cad" placeholder="Ex: ZAGO1234" style="text-transform:uppercase">
@@ -949,16 +949,16 @@
 
     <div class="tabpane" data-pane="agenda">
       <div class="statsbar" id="eq-resumo-stats" style="margin-top:14px"></div>
-      <div class="chipbar" id="eq-status-filtro">
-        <button class="chip active" data-f="todos" onclick="eqFiltrar('todos')">Todos</button>
-        <button class="chip" data-f="pendentes" onclick="eqFiltrar('pendentes')">Pendentes</button>
-        <button class="chip" data-f="pronto" onclick="eqFiltrar('pronto')">Prontos p/ retirada</button>
-        <button class="chip" data-f="finalizado" onclick="eqFiltrar('finalizado')">Finalizados</button>
-        <button class="chip" data-f="cancelado" onclick="eqFiltrar('cancelado')">Cancelados</button>
+      <div class="tabgrid tabgrid-3" id="eq-status-filtro">
+        <button class="tabtile active" data-f="todos" onclick="eqFiltrar('todos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Todos</span></button>
+        <button class="tabtile" data-f="pendentes" onclick="eqFiltrar('pendentes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Pendentes</span></button>
+        <button class="tabtile" data-f="pronto" onclick="eqFiltrar('pronto')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>Prontos p/ retirada</span></button>
+        <button class="tabtile" data-f="finalizado" onclick="eqFiltrar('finalizado')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Finalizados</span></button>
+        <button class="tabtile" data-f="cancelado" onclick="eqFiltrar('cancelado')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span>Cancelados</span></button>
+        <button class="tabtile" id="btn-bloq-painel" onclick="toggleBloqPainel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="10" y1="14" x2="14" y2="18"/><line x1="14" y1="14" x2="10" y2="18"/></svg><span>Dias fechados</span></button>
       </div>
 
-      <details class="privacy-box" style="margin-top:12px">
-        <summary>📅 Dias fechados da oficina</summary>
+      <div class="privacy-box hide" id="eq-bloq-painel" style="margin-top:12px">
         <div id="eq-bloqueios-lista" style="margin-top:8px"></div>
         <label>Fechar uma data (feriado, folga, viagem)</label>
         <input type="date" id="bloq-data">
@@ -971,7 +971,7 @@
         </select>
         <button class="btn secondary" style="margin-top:10px" onclick="adicionarBloqueioSemana()">Fechar todo esse dia da semana</button>
         <p style="margin:10px 0 0">Dia fechado não aparece para o cliente agendar. Agendamentos já marcados nesse dia continuam na agenda.</p>
-      </details>
+      </div>
 
       <div id="eq-agenda-list" style="margin-top:12px"></div>
     </div>
@@ -1014,7 +1014,7 @@
         <label style="margin-top:10px">WhatsApp</label>
         <input id="novo-cli-fone" placeholder="(00) 00000-0000" inputmode="tel" oninput="formatarTelefone(this)">
         <label style="margin-top:10px">Senha inicial</label>
-        <input id="novo-cli-senha" type="text" placeholder="Mínimo 6 caracteres">
+        <input id="novo-cli-senha" type="text" placeholder="Mínimo 8 caracteres">
 
         <label style="margin-top:14px">Veículo (opcional)</label>
         <input id="novo-cli-v-modelo" placeholder="Modelo">
@@ -1543,7 +1543,7 @@ async function clienteCriarConta(){
     return;
   }
   if(!nome || !fone){ toast('Preencha nome e WhatsApp'); return; }
-  if(!senha || senha.length < 6){ toast('A senha precisa ter pelo menos 6 caracteres'); return; }
+  if(!senha || senha.length < 8){ toast('A senha precisa ter pelo menos 8 caracteres'); return; }
 
   const email = foneParaEmail(fone);
   const { data, error } = await supabaseClient.auth.signUp({ email, password: senha });
@@ -2822,7 +2822,7 @@ function equipeSair(){
   go('home');
 }
 function eqTab(name){
-  document.querySelectorAll('#screen-equipe-dash .tabtile').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('#screen-equipe-dash .tabtile[data-tab]').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
   document.querySelectorAll('#screen-equipe-dash .tabpane').forEach(p=>p.classList.toggle('hide', p.dataset.pane!==name));
 }
 
@@ -2995,7 +2995,7 @@ function toggleEditarOS(osId){
   if(!os) return;
   painel.innerHTML = `
     <label>Descrição do serviço</label>
-    <textarea id="os-edit-desc-${osId}">${os.descricao||''}</textarea>
+    <textarea id="os-edit-desc-${osId}">${esc(os.descricao||'')}</textarea>
     <label style="margin-top:10px">Valor (R$)</label>
     <input id="os-edit-valor-${osId}" type="number" step="0.01" value="${os.valor||''}">
     <button class="btn secondary" style="margin-top:12px" onclick="salvarEdicaoOS('${osId}')">Salvar alterações</button>
@@ -3032,8 +3032,8 @@ function osHistoricoHtml(osId){
   return lista.map(h => {
     const quando = new Date(h.criado_em).toLocaleString('pt-BR');
     return `<div style="font-size:12.5px;color:var(--grey);padding:6px 0;border-bottom:1px solid var(--line)">
-      <strong style="color:var(--white)">${h.campo}</strong> alterado por ${h.alterado_por||'—'} em ${quando}<br>
-      <span style="color:var(--danger)">${h.valor_antigo||'—'}</span> → <span style="color:var(--ok)">${h.valor_novo||'—'}</span>
+      <strong style="color:var(--white)">${esc(h.campo)}</strong> alterado por ${esc(h.alterado_por||'—')} em ${quando}<br>
+      <span style="color:var(--danger)">${esc(h.valor_antigo||'—')}</span> → <span style="color:var(--ok)">${esc(h.valor_novo||'—')}</span>
     </div>`;
   }).join('');
 }
@@ -3204,7 +3204,7 @@ async function staffCriarCliente(){
   const vPlaca = limparPlaca(document.getElementById('novo-cli-v-placa').value);
 
   if(!nome || !fone){ toast('Preencha nome e WhatsApp'); return; }
-  if(!senha || senha.length < 6){ toast('A senha precisa ter pelo menos 6 caracteres'); return; }
+  if(!senha || senha.length < 8){ toast('A senha precisa ter pelo menos 8 caracteres'); return; }
 
   const clienteTemp = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession:false, autoRefreshToken:false }
@@ -3238,8 +3238,14 @@ async function staffCriarCliente(){
 
 function eqFiltrar(f){
   EQ_FILTRO = f;
-  document.querySelectorAll('#eq-status-filtro .chip').forEach(c=>c.classList.toggle('active', c.dataset.f===f));
+  document.querySelectorAll('#eq-status-filtro .tabtile[data-f]').forEach(c=>c.classList.toggle('active', c.dataset.f===f));
   renderEqAgenda();
+}
+
+function toggleBloqPainel(){
+  const painel = document.getElementById('eq-bloq-painel');
+  const aberto = painel.classList.toggle('hide') === false;
+  document.getElementById('btn-bloq-painel').classList.toggle('active', aberto);
 }
 
 function botaoLembreteWhats(x, tipo){
