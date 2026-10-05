@@ -3713,7 +3713,10 @@ async function salvarEdicaoCliente(id){
     const modelo = inputs[0].value.trim();
     const ano = inputs[1].value.trim();
     const placa = limparPlaca(inputs[2].value);
-    if(modelo && placa){ veiculos.push({modelo, ano, placa}); }
+    if(modelo && placa){
+      const antigo = ((DB.clientes[id] && DB.clientes[id].veiculos) || []).find(v => limparPlaca(v.placa) === placa) || {};
+      veiculos.push({ ...antigo, modelo, ano, placa });   // mantém ultimaTrocaOleo / ultimaRevisao
+    }
   });
   const { data: atualizado, error } = await supabaseClient
     .from('clientes')
@@ -3727,6 +3730,7 @@ async function salvarEdicaoCliente(id){
   }
   toast('Cliente atualizado');
   registrarLog('Cliente editado', nome);
+  await fetchClientes();   // relê e redesenha agora (não depende do Realtime)
 }
 
 async function excluirCliente(id){
