@@ -202,6 +202,8 @@
     font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;
   }
   .chip.active{background:var(--gold);color:#0d0d0d;border-color:var(--gold);}
+  .os-grupo{margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);font-weight:800;font-size:13px;color:var(--gold);display:flex;justify-content:space-between;gap:8px;}
+  .os-grupo span{color:var(--grey);font-weight:600;}
 
   .os-sugestao{
     padding:9px 12px;border:1px solid var(--line);border-top:none;cursor:pointer;font-size:13px;
@@ -945,6 +947,7 @@
       <button class="tabtile" data-tab="qrcode" onclick="eqTab('qrcode')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20v.01M20 20v.01"/></svg><span>QR Code</span></button>
       <button class="tabtile" data-tab="fotos" onclick="eqTab('fotos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>Fotos</span></button>
       <button class="tabtile" data-tab="atividade" onclick="eqTab('atividade')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Atividade</span></button>
+      <button class="tabtile" data-tab="estoque" onclick="eqTab('estoque')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7L12 12l8.7-5"/><line x1="12" y1="22" x2="12" y2="12"/></svg><span>Estoque</span></button>
     </div>
 
     <div class="tabpane" data-pane="agenda">
@@ -980,6 +983,20 @@
       <div id="eq-orcamentos-list" style="margin-top:16px"></div>
     </div>
 
+    <div class="tabpane hide" data-pane="estoque">
+      <div id="eq-estoque-alerta" style="margin-top:14px"></div>
+      <details class="privacy-box" style="margin-top:12px">
+        <summary>＋ Cadastrar produto</summary>
+        <label>Nome do produto</label><input id="est-nome" placeholder="Ex.: Óleo 5W30 sintético">
+        <label>Unidade</label>
+        <select id="est-un"><option>un</option><option>L</option><option>kg</option><option>par</option><option>jogo</option><option>m</option></select>
+        <label>Quantidade em estoque agora</label><input id="est-qtd" inputmode="decimal" placeholder="0">
+        <label>Avisar quando chegar a (mínimo)</label><input id="est-min" inputmode="decimal" placeholder="Ex.: 5">
+        <button class="btn secondary" style="margin-top:10px" onclick="cadastrarProduto()">Salvar produto</button>
+      </details>
+      <div id="eq-estoque-list" style="margin-top:12px"></div>
+    </div>
+
     <div class="tabpane hide" data-pane="os">
       <div style="margin-top:16px">
         <button class="btn" onclick="toggleNovaOS()" id="btn-nova-os">+ Nova Ordem de Serviço</button>
@@ -1002,7 +1019,8 @@
           <button class="btn secondary" style="margin-top:12px" onclick="criarOrdemServico()">Criar Ordem de Serviço</button>
         </div>
 
-        <div id="eq-os-list" style="margin-top:18px"></div>
+        <input id="os-busca-lista" placeholder="Buscar por cliente, placa, nº da OS ou serviço" oninput="renderEqOS()" style="margin-top:14px">
+      <div id="eq-os-list" style="margin-top:18px"></div>
       </div>
     </div>
 
@@ -1270,6 +1288,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 });
 
 let DB = {
+  estoque: [], os_materiais: {},
   clientes: {},
   agendamentos: [],
   ocupados: null,    // horários ocupados de TODOS (só data/hora/duração), via RPC horarios_ocupados
@@ -1379,11 +1398,13 @@ async function fetchBloqueios(){
   rerenderVisivel();
 }
 async function fetchTudo(){
-  await Promise.all([fetchClientes(), fetchAgendamentos(), fetchOrcamentos(), fetchGaleria(), fetchAvaliacoes(), fetchCupons(), fetchOrdensServico(), fetchBloqueios()]);
+  await Promise.all([fetchClientes(), fetchAgendamentos(), fetchOrcamentos(), fetchGaleria(), fetchAvaliacoes(), fetchCupons(), fetchOrdensServico(), fetchBloqueios(), fetchEstoque()]);
 }
 
 /* ---------------- TEMPO REAL ---------------- */
 function subscribeRealtime(){
+  supabaseClient.channel('rt-estoque').on('postgres_changes', {event:'*', schema:'public', table:'estoque_produtos'}, fetchEstoque).subscribe();
+  supabaseClient.channel('rt-os-mat').on('postgres_changes', {event:'*', schema:'public', table:'os_materiais'}, fetchEstoque).subscribe();
   supabaseClient.channel('rt-clientes').on('postgres_changes', {event:'*', schema:'public', table:'clientes'}, fetchClientes).subscribe();
   supabaseClient.channel('rt-agendamentos').on('postgres_changes', {event:'*', schema:'public', table:'agendamentos'}, fetchAgendamentos).subscribe();
   supabaseClient.channel('rt-orcamentos').on('postgres_changes', {event:'*', schema:'public', table:'orcamentos'}, fetchOrcamentos).subscribe();
@@ -2948,12 +2969,22 @@ async function gerarOSDeOrcamento(orcamentoId){
 function renderEqOS(){
   const el = document.getElementById('eq-os-list');
   if(!el) return;
-  const list = [...DB.ordens_servico];
-  if(!list.length){ el.innerHTML = '<div class="empty">Nenhuma Ordem de Serviço criada ainda.</div>'; return; }
+  const q = (document.getElementById('os-busca-lista')?.value || '').trim().toLowerCase();
+  const nomeDe = os => (DB.clientes[os.cliente_id] && DB.clientes[os.cliente_id].nome) || 'Cliente removido';
+  const list = DB.ordens_servico
+    .filter(os => !q || [nomeDe(os), os.veiculo, os.descricao, os.numero, 'os ' + os.numero].join(' ').toLowerCase().includes(q))
+    .sort((a,b) => nomeDe(a).localeCompare(nomeDe(b), 'pt-BR', {sensitivity:'base'}) || new Date(b.criado_em) - new Date(a.criado_em));
+  if(!list.length){ el.innerHTML = '<div class="empty">' + (q ? 'Nenhuma OS encontrada para essa busca.' : 'Nenhuma Ordem de Serviço criada ainda.') + '</div>'; return; }
+  const porCliente = {}; list.forEach(os => { const n = nomeDe(os); porCliente[n] = (porCliente[n]||0) + 1; });
+  let ultimoNome = null;
   el.innerHTML = list.map(os=>{
+    const nomeGrupo = nomeDe(os);
+    const cabecalho = nomeGrupo !== ultimoNome ? `<div class="os-grupo">👤 ${esc(nomeGrupo)} <span>${porCliente[nomeGrupo]} OS</span></div>` : '';
+    ultimoNome = nomeGrupo;
     const cliente = DB.clientes[os.cliente_id];
     const assin = safeImg(os.assinatura);
     return `
+${cabecalho}
     <div class="card">
       <div class="row1">
         <h3>OS #${esc(os.numero)} — ${cliente ? esc(cliente.nome) : 'Cliente removido'}</h3>
@@ -2961,6 +2992,7 @@ function renderEqOS(){
       </div>
       <div class="small">${esc(os.veiculo)}</div>
       <div class="small" style="margin-top:4px">${esc(os.descricao)}</div>
+      <div class="small" style="margin-top:4px;color:var(--grey)" data-mat-resumo="${esc(os.id)}">${matResumo(os.id)}</div>
       ${os.valor ? `<div style="margin-top:6px;color:var(--gold);font-weight:800;">R$ ${Number(os.valor).toFixed(2)}</div>` : ''}
       <div class="small" style="margin-top:6px;color:var(--grey)">Criada em ${new Date(os.criado_em).toLocaleDateString('pt-BR')} por ${esc(os.criado_por_nome||'Equipe')}</div>
 
@@ -2976,6 +3008,7 @@ function renderEqOS(){
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="imprimirOS('${esc(os.id)}')" title="Imprimir">🖨️</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="abrirModalAssinatura('${esc(os.id)}')" title="Assinatura">✍️</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleFotosOS('${esc(os.id)}')" title="Fotos">📷 ${(DB.os_fotos[os.id]||[]).length || ''}</button>
+        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleMateriaisOS('${esc(os.id)}')" title="Materiais usados">📦 <span data-mat-n="${esc(os.id)}">${(DB.os_materiais[os.id]||[]).length || ''}</span></button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleEditarOS('${esc(os.id)}')" title="Editar">✏️</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleHistoricoOS('${esc(os.id)}')" title="Histórico">🕘 ${(DB.os_historico[os.id]||[]).length || ''}</button>
         <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0;border-color:var(--danger);color:var(--danger)" onclick="excluirOrdemServico('${esc(os.id)}')" title="Excluir">🗑️</button>
@@ -2984,6 +3017,7 @@ function renderEqOS(){
       <div class="hide" id="os-fotos-painel-${esc(os.id)}" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
         ${osFotosHtml(os.id)}
       </div>
+      <div class="hide" id="os-mat-painel-${esc(os.id)}" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>
       <div class="hide" id="os-historico-painel-${esc(os.id)}" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>
     </div>`;
   }).join('');
@@ -3078,6 +3112,141 @@ function osFotosHtml(osId){
     <input type="file" accept="image/*" class="os-foto-arquivo" data-os-id="${osId}">
     <button class="btn ghost" style="margin-top:8px" onclick="salvarFotoOS('${osId}')">Adicionar foto</button>
   `;
+}
+
+
+/* ---------------- ESTOQUE ---------------- */
+const numBR = s => Number(String(s ?? '').trim().replace(',', '.'));
+const fmtQtd = n => Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+const estoqueBaixo = p => Number(p.minimo) > 0 && Number(p.quantidade) <= Number(p.minimo);
+const prodDe = id => DB.estoque.find(p => p.id === id) || { nome: 'Produto removido', unidade: '' };
+
+async function fetchEstoque(){
+  if(SESSION.role !== 'equipe') return;
+  const [p, m] = await Promise.all([
+    supabaseClient.from('estoque_produtos').select('*').order('nome'),
+    supabaseClient.from('os_materiais').select('*').order('criado_em')
+  ]);
+  if(p.error){ console.error('estoque:', p.error.message); return; }
+  DB.estoque = p.data || [];
+  const porOS = {}; (m.data || []).forEach(x => { (porOS[x.os_id] ||= []).push(x); });
+  DB.os_materiais = porOS;
+  renderEqEstoque();
+  // atualiza só os pedaços da tela (não fecha painéis abertos)
+  document.querySelectorAll('[id^="os-mat-painel-"]').forEach(el => { if(!el.classList.contains('hide')) el.innerHTML = osMateriaisHtml(el.id.replace('os-mat-painel-','')); });
+  document.querySelectorAll('[data-mat-n]').forEach(el => { el.textContent = (DB.os_materiais[el.dataset.matN] || []).length || ''; });
+  document.querySelectorAll('[data-mat-resumo]').forEach(el => { el.innerHTML = matResumo(el.dataset.matResumo); });
+}
+
+function matResumo(osId){
+  const u = DB.os_materiais[osId] || [];
+  return u.length ? 'Materiais: ' + u.map(m => { const p = prodDe(m.produto_id); return esc(p.nome) + ' (' + fmtQtd(m.quantidade) + ' ' + esc(p.unidade) + ')'; }).join(', ') : '';
+}
+
+function renderEqEstoque(){
+  const el = document.getElementById('eq-estoque-list'); if(!el) return;
+  const ativos = DB.estoque.filter(p => p.ativo);
+  const baixos = ativos.filter(estoqueBaixo);
+  const rotulo = document.querySelector('#screen-equipe-dash .tabtile[data-tab="estoque"] span');
+  if(rotulo) rotulo.textContent = baixos.length ? 'Estoque ⚠️' + baixos.length : 'Estoque';
+  document.getElementById('eq-estoque-alerta').innerHTML = baixos.length
+    ? `<div class="card" style="border-color:var(--danger)"><strong style="color:var(--danger)">⚠️ Estoque baixo — repor</strong>${baixos.map(p => `<div class="small" style="margin-top:4px">${esc(p.nome)}: <strong style="color:var(--white)">${fmtQtd(p.quantidade)} ${esc(p.unidade)}</strong> (mínimo ${fmtQtd(p.minimo)})</div>`).join('')}</div>` : '';
+  const btn = 'class="btn ghost" style="width:auto;padding:8px 12px;margin:0"';
+  el.innerHTML = ativos.length ? ativos.map(p => { const bx = estoqueBaixo(p); return `
+    <div class="card">
+      <div class="row1"><h3>${esc(p.nome)}</h3>${bx ? '<span class="badge" style="background:rgba(224,82,82,.15);color:var(--danger)">BAIXO</span>' : ''}</div>
+      <div style="font-size:22px;font-weight:800;color:${bx ? 'var(--danger)' : 'var(--gold)'}">${fmtQtd(p.quantidade)} <span class="small">${esc(p.unidade)}</span></div>
+      <div class="small">${Number(p.minimo) > 0 ? 'Avisa quando chegar a ' + fmtQtd(p.minimo) + ' ' + esc(p.unidade) + ' ou menos' : 'Sem alerta (mínimo 0)'}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button ${btn} onclick="estoqueEntrada('${esc(p.id)}')">＋ Entrada</button>
+        <button ${btn} onclick="estoqueContagem('${esc(p.id)}')">Contagem</button>
+        <button ${btn} onclick="estoqueMinimo('${esc(p.id)}')">Mínimo</button>
+        <button ${btn.replace('margin:0','margin:0;border-color:var(--danger);color:var(--danger)')} onclick="estoqueArquivar('${esc(p.id)}')">Arquivar</button>
+      </div>
+    </div>`; }).join('') : '<div class="empty">Nenhum produto cadastrado ainda.</div>';
+}
+
+async function cadastrarProduto(){
+  const nome = document.getElementById('est-nome').value.trim();
+  const unidade = document.getElementById('est-un').value;
+  const quantidade = numBR(document.getElementById('est-qtd').value || '0');
+  const minimo = numBR(document.getElementById('est-min').value || '0');
+  if(!nome){ toast('Informe o nome do produto'); return; }
+  if(isNaN(quantidade) || isNaN(minimo) || minimo < 0){ toast('Quantidade ou mínimo inválido'); return; }
+  const { error } = await supabaseClient.from('estoque_produtos').insert({ nome, unidade, quantidade, minimo });
+  if(error){ toast(/duplicate|unique/i.test(error.message) ? 'Já existe um produto com esse nome' : 'Erro: ' + error.message); return; }
+  ['est-nome','est-qtd','est-min'].forEach(i => document.getElementById(i).value = '');
+  toast('Produto cadastrado'); registrarLog('Produto cadastrado', nome);
+  await fetchEstoque();
+}
+async function estoqueAjustar(id, delta, motivo){
+  const { error } = await supabaseClient.rpc('estoque_ajustar', { p_produto: id, p_delta: Math.round(delta * 1000) / 1000, p_motivo: motivo });
+  if(error){ toast('Erro: ' + error.message); return false; }
+  await fetchEstoque(); return true;
+}
+async function estoqueEntrada(id){
+  const p = prodDe(id); const v = prompt(`Entrada de "${p.nome}" — quantidade recebida (${p.unidade}):`); if(v === null) return;
+  const q = numBR(v); if(!(q > 0)){ toast('Quantidade inválida'); return; }
+  if(await estoqueAjustar(id, q, 'Entrada (compra)')){ toast('Entrada registrada'); registrarLog('Entrada de estoque', `${p.nome} +${q}`); }
+}
+async function estoqueContagem(id){
+  const p = prodDe(id); const v = prompt(`Contagem real de "${p.nome}" agora (${p.unidade}).\nO sistema registra a diferença (atual: ${fmtQtd(p.quantidade)}):`); if(v === null) return;
+  const real = numBR(v); if(isNaN(real)){ toast('Valor inválido'); return; }
+  const delta = real - Number(p.quantidade); if(Math.abs(delta) < 0.0005){ toast('Estoque já confere'); return; }
+  if(await estoqueAjustar(id, delta, 'Contagem / inventário')){ toast('Estoque ajustado'); registrarLog('Contagem de estoque', `${p.nome}: ${fmtQtd(p.quantidade)} → ${fmtQtd(real)}`); }
+}
+async function estoqueMinimo(id){
+  const p = prodDe(id); const v = prompt(`Avisar quando "${p.nome}" chegar a quantas ${p.unidade}? (0 = sem alerta)`, String(p.minimo)); if(v === null) return;
+  const minimo = numBR(v); if(isNaN(minimo) || minimo < 0){ toast('Valor inválido'); return; }
+  const { error } = await supabaseClient.from('estoque_produtos').update({ minimo }).eq('id', id);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Mínimo atualizado'); await fetchEstoque();
+}
+async function estoqueArquivar(id){
+  const p = prodDe(id); if(!confirm(`Arquivar "${p.nome}"? Ele some das listas, mas o histórico das OS é mantido.`)) return;
+  const { error } = await supabaseClient.from('estoque_produtos').update({ ativo: false }).eq('id', id);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Produto arquivado'); await fetchEstoque();
+}
+
+/* ---- materiais dentro da OS (dão baixa automática) ---- */
+function osMateriaisHtml(osId){
+  const usados = DB.os_materiais[osId] || [];
+  const lista = usados.length ? usados.map(m => { const p = prodDe(m.produto_id); return `<div class="small" style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>${esc(p.nome)} — <strong style="color:var(--white)">${fmtQtd(m.quantidade)} ${esc(p.unidade)}</strong></span><a style="color:var(--danger);cursor:pointer" onclick="removerMaterialOS('${esc(m.id)}')">remover</a></div>`; }).join('')
+    : '<div class="small" style="margin-top:6px">Nenhum material lançado nesta OS.</div>';
+  const opts = DB.estoque.filter(p => p.ativo).map(p => `<option value="${esc(p.id)}">${esc(p.nome)} (${fmtQtd(p.quantidade)} ${esc(p.unidade)})</option>`).join('');
+  return `<div class="small" style="color:var(--grey)">Materiais usados — cada lançamento dá baixa no estoque</div>${lista}
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <select id="os-mat-prod-${esc(osId)}" style="flex:1">${opts || '<option value="">Cadastre produtos na aba Estoque</option>'}</select>
+      <input id="os-mat-qtd-${esc(osId)}" inputmode="decimal" placeholder="Qtd" style="width:80px">
+    </div>
+    <button class="btn secondary" style="margin-top:8px" onclick="adicionarMaterialOS('${esc(osId)}')">Dar baixa no estoque</button>`;
+}
+function toggleMateriaisOS(osId){
+  const painel = document.getElementById('os-mat-painel-' + osId); if(!painel) return;
+  const abrir = painel.classList.contains('hide');
+  painel.classList.toggle('hide');
+  if(abrir) painel.innerHTML = osMateriaisHtml(osId);
+}
+async function adicionarMaterialOS(osId){
+  const pid = document.getElementById('os-mat-prod-' + osId).value;
+  const q = numBR(document.getElementById('os-mat-qtd-' + osId).value);
+  if(!pid){ toast('Escolha um produto'); return; }
+  if(!(q > 0)){ toast('Informe a quantidade usada'); return; }
+  const p = DB.estoque.find(x => x.id === pid);
+  const { error } = await supabaseClient.from('os_materiais').insert({ os_id: osId, produto_id: pid, quantidade: q, criado_por: SESSION.userId });
+  if(error){ toast('Erro: ' + error.message); return; }
+  const os = DB.ordens_servico.find(o => o.id === osId);
+  registrarLog('Material na OS', `${p ? p.nome : ''} ×${q} — OS #${os ? os.numero : ''}`);
+  const resta = p ? Number(p.quantidade) - q : 0;
+  toast(p && Number(p.minimo) > 0 && resta <= Number(p.minimo) ? `⚠️ Estoque baixo: ${p.nome} (restam ${fmtQtd(resta)} ${p.unidade})` : 'Baixa registrada no estoque');
+  await fetchEstoque();
+}
+async function removerMaterialOS(id){
+  if(!confirm('Remover este material da OS? A quantidade volta para o estoque.')) return;
+  const { error } = await supabaseClient.from('os_materiais').delete().eq('id', id);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Material removido — estoque devolvido'); await fetchEstoque();
 }
 
 function toggleFotosOS(osId){
