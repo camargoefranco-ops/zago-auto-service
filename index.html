@@ -204,6 +204,9 @@
   .chip.active{background:var(--gold);color:#0d0d0d;border-color:var(--gold);}
   .os-grupo{margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);font-weight:800;font-size:13px;color:var(--gold);display:flex;justify-content:space-between;gap:8px;}
   .os-grupo span{color:var(--grey);font-weight:600;}
+  .os-acoes{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px;}
+  .os-acoes .btn{width:100%;min-width:0;margin:0;padding:14px 4px;font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;}
+  .os-acoes .btn span{font-size:14px;font-weight:700;}
 
   .os-sugestao{
     padding:9px 12px;border:1px solid var(--line);border-top:none;cursor:pointer;font-size:13px;
@@ -936,7 +939,8 @@
   <div id="screen-equipe-dash" class="screen hide">
     <div class="topnav"><button class="backbtn" onclick="go('home')">‹ Voltar</button></div>
     <h2 class="title">Painel da oficina</h2>
-    <p class="sub" style="margin-top:-10px">Logado como <strong id="eq-nome-logado" style="color:var(--white)"></strong> · <a onclick="equipeSair()" style="color:var(--gold);cursor:pointer;text-decoration:underline;">sair</a><span class="bio-toggle hide"> · <a onclick="alternarBiometria()" style="color:var(--gold);cursor:pointer;text-decoration:underline;"></a></span></p>
+    <p class="small" id="sync-status" style="margin:-4px 0 14px"></p>
+<p class="sub" style="margin-top:-10px">Logado como <strong id="eq-nome-logado" style="color:var(--white)"></strong> · <a onclick="equipeSair()" style="color:var(--gold);cursor:pointer;text-decoration:underline;">sair</a><span class="bio-toggle hide"> · <a onclick="alternarBiometria()" style="color:var(--gold);cursor:pointer;text-decoration:underline;"></a></span></p>
 
     <div class="tabgrid tabgrid-4">
       <button class="tabtile active" data-tab="agenda" onclick="eqTab('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Agenda</span></button>
@@ -1027,7 +1031,7 @@
 <button class="btn secondary" style="margin-top:12px" onclick="criarOrdemServico()">Criar Ordem de Serviço</button>
         </div>
 
-        <input id="os-busca-lista" placeholder="Buscar por cliente, placa, nº da OS ou serviço" oninput="renderEqOS()" style="margin-top:14px">
+        <input id="os-busca-lista" autocomplete="off" placeholder="Buscar por cliente, placa, nº da OS ou serviço" oninput="renderEqOS()" style="margin-top:14px">
       <div id="eq-os-list" style="margin-top:18px"></div>
       </div>
     </div>
@@ -1098,7 +1102,7 @@
 
 <script>
 /* ---------------- VERSÃO ---------------- */
-const APP_VERSAO = '2.5';
+const APP_VERSAO = '2.6';
 document.getElementById('app-versao').textContent = 'v' + APP_VERSAO;
 
 /* ---------------- SEGURANÇA: escape de texto vindo do usuário ----------------
@@ -1407,7 +1411,25 @@ async function fetchBloqueios(){
 }
 async function fetchTudo(){
   await Promise.all([fetchClientes(), fetchAgendamentos(), fetchOrcamentos(), fetchGaleria(), fetchAvaliacoes(), fetchCupons(), fetchOrdensServico(), fetchBloqueios(), fetchEstoque()]);
+  marcarSync();
 }
+
+/* ---- status da sincronização (mostra o que ESTE aparelho carregou) ---- */
+let rtOk = null;   // null = conectando · true = ativo · false = caiu
+function marcarSync(){
+  const el = document.getElementById('sync-status'); if(!el || SESSION.role !== 'equipe') return;
+  const hora = new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  const rt = rtOk === true ? '🟢 tempo real ativo' : rtOk === false ? '🔴 tempo real caiu' : '⚪ conectando…';
+  el.innerHTML = `${rt} · atualizado às ${hora} · ${DB.ordens_servico.length} OS · <a style="color:var(--gold);cursor:pointer;text-decoration:underline" onclick="atualizarTudo()">🔄 Atualizar</a>`;
+}
+async function atualizarTudo(){ toast('Atualizando…'); await fetchTudo(); toast('Dados atualizados'); }
+// Ao voltar para o app (celular desbloqueado, aba do notebook reaberta) relê tudo:
+// as conexões em tempo real costumam cair quando a aba fica parada.
+let _ultimaVolta = 0;
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden || !SESSION.role || Date.now() - _ultimaVolta < 5000) return;
+  _ultimaVolta = Date.now(); fetchTudo();
+});
 
 /* ---------------- TEMPO REAL ---------------- */
 function subscribeRealtime(){
@@ -1420,7 +1442,7 @@ function subscribeRealtime(){
   supabaseClient.channel('rt-avaliacoes').on('postgres_changes', {event:'*', schema:'public', table:'avaliacoes'}, fetchAvaliacoes).subscribe();
   supabaseClient.channel('rt-cupons').on('postgres_changes', {event:'*', schema:'public', table:'cupons'}, fetchCupons).subscribe();
   supabaseClient.channel('rt-logs').on('postgres_changes', {event:'*', schema:'public', table:'logs'}, fetchLogs).subscribe();
-  supabaseClient.channel('rt-os').on('postgres_changes', {event:'*', schema:'public', table:'ordens_servico'}, fetchOrdensServico).subscribe();
+  supabaseClient.channel('rt-os').on('postgres_changes', {event:'*', schema:'public', table:'ordens_servico'}, fetchOrdensServico).subscribe(st => { if(st === 'SUBSCRIBED') rtOk = true; else if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(st)) rtOk = false; marcarSync(); });
   supabaseClient.channel('rt-os-fotos').on('postgres_changes', {event:'*', schema:'public', table:'os_fotos'}, fetchOsFotos).subscribe();
   supabaseClient.channel('rt-os-historico').on('postgres_changes', {event:'*', schema:'public', table:'os_historico'}, fetchOsHistorico).subscribe();
   supabaseClient.channel('rt-bloqueios').on('postgres_changes', {event:'*', schema:'public', table:'agenda_bloqueios'}, fetchBloqueios).subscribe();
@@ -2997,7 +3019,8 @@ function renderEqOS(){
   if(!list.length){ el.innerHTML = '<div class="empty">' + (q ? 'Nenhuma OS encontrada para essa busca.' : 'Nenhuma Ordem de Serviço criada ainda.') + '</div>'; return; }
   const porCliente = {}; list.forEach(os => { const n = nomeDe(os); porCliente[n] = (porCliente[n]||0) + 1; });
   let ultimoNome = null;
-  el.innerHTML = list.map(os=>{
+  const avisoBusca = q ? `<div class="small" style="margin-top:6px">🔎 Mostrando ${list.length} de ${DB.ordens_servico.length} OS — <a style="color:var(--gold);cursor:pointer;text-decoration:underline" onclick="document.getElementById('os-busca-lista').value='';renderEqOS()">limpar busca</a></div>` : '';
+  el.innerHTML = avisoBusca + list.map(os=>{
     const nomeGrupo = nomeDe(os);
     const cabecalho = nomeGrupo !== ultimoNome ? `<div class="os-grupo">👤 ${esc(nomeGrupo)} <span>${porCliente[nomeGrupo]} OS</span></div>` : '';
     ultimoNome = nomeGrupo;
@@ -3018,20 +3041,20 @@ ${cabecalho}
 
       ${assin ? `<div class="small" style="margin-top:8px;color:var(--grey)">Assinatura registrada:</div><img src="${assin}" style="max-width:160px;background:#fff;border-radius:6px;margin-top:4px;border:1px solid var(--line)">` : ''}
 
-      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-        <select id="os-status-${esc(os.id)}" onchange="atualizarStatusOS('${esc(os.id)}', this.value)" style="flex:1">
+      <select id="os-status-${esc(os.id)}" onchange="atualizarStatusOS('${esc(os.id)}', this.value)" style="width:100%;margin-top:10px">
           <option value="Aberta" ${os.status==='Aberta'?'selected':''}>Aberta</option>
           <option value="Em andamento" ${os.status==='Em andamento'?'selected':''}>Em andamento</option>
           <option value="Concluída" ${os.status==='Concluída'?'selected':''}>Concluída</option>
           <option value="Cancelada" ${os.status==='Cancelada'?'selected':''}>Cancelada</option>
         </select>
-        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="imprimirOS('${esc(os.id)}')" title="Imprimir">🖨️</button>
-        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="abrirModalAssinatura('${esc(os.id)}')" title="Assinatura">✍️</button>
-        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleFotosOS('${esc(os.id)}')" title="Fotos">📷 ${(DB.os_fotos[os.id]||[]).length || ''}</button>
-        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleMateriaisOS('${esc(os.id)}')" title="Materiais usados">📦 <span data-mat-n="${esc(os.id)}">${(DB.os_materiais[os.id]||[]).length || ''}</span></button>
-        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleEditarOS('${esc(os.id)}')" title="Editar">✏️</button>
-        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0" onclick="toggleHistoricoOS('${esc(os.id)}')" title="Histórico">🕘 ${(DB.os_historico[os.id]||[]).length || ''}</button>
-        <button class="btn ghost" style="width:auto;padding:8px 14px;margin:0;border-color:var(--danger);color:var(--danger)" onclick="excluirOrdemServico('${esc(os.id)}')" title="Excluir">🗑️</button>
+<div class="os-acoes">
+        <button class="btn ghost" onclick="imprimirOS('${esc(os.id)}')" title="Imprimir">🖨️</button>
+        <button class="btn ghost" onclick="abrirModalAssinatura('${esc(os.id)}')" title="Assinatura">✍️</button>
+        <button class="btn ghost" onclick="toggleFotosOS('${esc(os.id)}')" title="Fotos">📷 ${(DB.os_fotos[os.id]||[]).length || ''}</button>
+        <button class="btn ghost" onclick="toggleMateriaisOS('${esc(os.id)}')" title="Materiais usados">📦 <span data-mat-n="${esc(os.id)}">${(DB.os_materiais[os.id]||[]).length || ''}</span></button>
+        <button class="btn ghost" onclick="toggleEditarOS('${esc(os.id)}')" title="Editar">✏️</button>
+        <button class="btn ghost" onclick="toggleHistoricoOS('${esc(os.id)}')" title="Histórico">🕘 ${(DB.os_historico[os.id]||[]).length || ''}</button>
+        <button class="btn ghost" style="border-color:var(--danger);color:var(--danger)" onclick="excluirOrdemServico('${esc(os.id)}')" title="Excluir">🗑️</button>
       </div>
       <div class="hide" id="os-editar-painel-${esc(os.id)}" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>
       <div class="hide" id="os-fotos-painel-${esc(os.id)}" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
