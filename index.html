@@ -1016,7 +1016,15 @@
           <label style="margin-top:10px">Valor (R$)</label>
           <input type="number" id="os-valor" placeholder="0.00">
 
-          <button class="btn secondary" style="margin-top:12px" onclick="criarOrdemServico()">Criar Ordem de Serviço</button>
+          <label style="margin-top:14px">Materiais usados <span class="small">(dão baixa no estoque ao criar a OS)</span></label>
+<div id="os-novo-mat-lista"></div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<select id="os-novo-mat-prod" style="flex:1"></select>
+<input id="os-novo-mat-qtd" inputmode="decimal" placeholder="Qtd" style="width:80px">
+</div>
+<button class="btn ghost" style="margin-top:8px" onclick="addNovoMatOS()">+ Adicionar material</button>
+
+<button class="btn secondary" style="margin-top:12px" onclick="criarOrdemServico()">Criar Ordem de Serviço</button>
         </div>
 
         <input id="os-busca-lista" placeholder="Buscar por cliente, placa, nº da OS ou serviço" oninput="renderEqOS()" style="margin-top:14px">
@@ -2901,6 +2909,7 @@ function toggleNovaOS(){
     document.getElementById('os-veiculo').value = '';
     document.getElementById('os-descricao').value = '';
     document.getElementById('os-valor').value = '';
+    osNovoMat = []; renderNovoMatOS();
     OS_CLIENTE_SELECIONADO = null;
   }
 }
@@ -2939,12 +2948,23 @@ async function criarOrdemServico(){
   if(!veiculo){ toast('Informe o veículo'); return; }
   if(!descricao){ toast('Descreva o serviço'); return; }
 
-  const { error } = await supabaseClient.from('ordens_servico').insert({
+  const { data: nova, error } = await supabaseClient.from('ordens_servico').insert({
     cliente_id: clienteId, veiculo, descricao, valor: valor || null,
     criado_por_nome: SESSION.nome || 'Equipe'
-  });
+  }).select('id').single();
   if(error){ toast('Erro ao criar OS: '+error.message); return; }
-  toast('Ordem de Serviço criada');
+  if(osNovoMat.length){
+    const { error: erroMat } = await supabaseClient.from('os_materiais').insert(
+      osNovoMat.map(m => ({ os_id: nova.id, produto_id: m.produto_id, quantidade: m.quantidade, criado_por: SESSION.userId })));
+    if(erroMat){ toast('OS criada, mas os materiais NÃO deram baixa: ' + erroMat.message); }
+    else {
+      const usados = osNovoMat.map(m => m.produto_id);
+      await fetchEstoque();
+      const baixos = DB.estoque.filter(x => usados.includes(x.id) && estoqueBaixo(x));
+      toast(baixos.length ? '⚠️ OS criada. Estoque baixo: ' + baixos.map(x => x.nome + ' (' + fmtQtd(x.quantidade) + ')').join(', ') : 'Ordem de Serviço criada e estoque atualizado');
+    }
+  } else { toast('Ordem de Serviço criada'); }
+  osNovoMat = [];
   registrarLog('Ordem de Serviço criada', `${DB.clientes[clienteId]?.nome || ''} — ${veiculo}`);
   toggleNovaOS();
 }
@@ -3131,7 +3151,7 @@ async function fetchEstoque(){
   DB.estoque = p.data || [];
   const porOS = {}; (m.data || []).forEach(x => { (porOS[x.os_id] ||= []).push(x); });
   DB.os_materiais = porOS;
-  renderEqEstoque();
+  renderEqEstoque(); renderNovoMatOS();
   // atualiza só os pedaços da tela (não fecha painéis abertos)
   document.querySelectorAll('[id^="os-mat-painel-"]').forEach(el => { if(!el.classList.contains('hide')) el.innerHTML = osMateriaisHtml(el.id.replace('os-mat-painel-','')); });
   document.querySelectorAll('[data-mat-n]').forEach(el => { el.textContent = (DB.os_materiais[el.dataset.matN] || []).length || ''; });
@@ -3248,6 +3268,29 @@ async function removerMaterialOS(id){
   if(error){ toast('Erro: ' + error.message); return; }
   toast('Material removido — estoque devolvido'); await fetchEstoque();
 }
+
+/* ---- materiais no formulário de NOVA OS ---- */
+let osNovoMat = [];
+function renderNovoMatOS(){
+  const lista = document.getElementById('os-novo-mat-lista'), sel = document.getElementById('os-novo-mat-prod');
+  if(!lista || !sel) return;
+  const atual = sel.value;
+  const ativos = DB.estoque.filter(p => p.ativo);
+  sel.innerHTML = ativos.length ? ativos.map(p => `<option value="${esc(p.id)}">${esc(p.nome)} (${fmtQtd(p.quantidade)} ${esc(p.unidade)})</option>`).join('') : '<option value="">Cadastre produtos na aba Estoque</option>';
+  if(atual) sel.value = atual;
+  lista.innerHTML = osNovoMat.map((m, i) => { const p = prodDe(m.produto_id); return `<div class="small" style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>${esc(p.nome)} — <strong style="color:var(--white)">${fmtQtd(m.quantidade)} ${esc(p.unidade)}</strong></span><a style="color:var(--danger);cursor:pointer" onclick="rmNovoMatOS(${i})">remover</a></div>`; }).join('');
+}
+function addNovoMatOS(){
+  const pid = document.getElementById('os-novo-mat-prod').value;
+  const q = numBR(document.getElementById('os-novo-mat-qtd').value);
+  if(!pid){ toast('Escolha um produto'); return; }
+  if(!(q > 0)){ toast('Informe a quantidade usada'); return; }
+  const ja = osNovoMat.find(m => m.produto_id === pid);
+  if(ja) ja.quantidade = Math.round((ja.quantidade + q) * 1000) / 1000; else osNovoMat.push({ produto_id: pid, quantidade: q });
+  document.getElementById('os-novo-mat-qtd').value = '';
+  renderNovoMatOS();
+}
+function rmNovoMatOS(i){ osNovoMat.splice(i, 1); renderNovoMatOS(); }
 
 function toggleFotosOS(osId){
   const painel = document.getElementById('os-fotos-painel-'+osId);
