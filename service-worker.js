@@ -1,51 +1,59 @@
-// Zago Auto Service — Service Worker
-// Versão do cache: mude esse número sempre que quiser forçar
-// os usuários a baixarem uma versão nova do app.
-const CACHE_NAME = 'zago-cache-v1';
+/* Zago Auto Service — Service Worker
+ *
+ * Objetivo: o app abrir mesmo sem internet (tela inicial) e instalar como PWA.
+ * Regras de SEGURANÇA:
+ *   - só mexe em requisições do MESMO domínio e do tipo GET;
+ *   - NUNCA guarda em cache nada do Supabase (login, tokens, dados) nem de CDN;
+ *   - HTML: rede primeiro (você sempre recebe a versão nova); cache só como reserva.
+ *
+ * Para publicar uma nova versão do app, mude VERSAO abaixo.
+ */
+const VERSAO = 'zago-v2.6.0';
+const ARQUIVOS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
-const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
-];
-
-// Instala o Service Worker e guarda os arquivos essenciais em cache
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(VERSAO)
+      .then((c) => c.addAll(ARQUIVOS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-// Remove caches antigos quando uma nova versão é ativada
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      )
-    )
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys()
+      .then((nomes) => Promise.all(nomes.filter((n) => n !== VERSAO).map((n) => caches.delete(n))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Estratégia: tenta a rede primeiro; se falhar (sem internet), usa o cache
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;      // Supabase, CDNs, Google: passa direto
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+  // Páginas: rede primeiro, cache como reserva (offline)
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res.ok) { const copia = res.clone(); caches.open(VERSAO).then((c) => c.put('./index.html', copia)); }
+          return res;
+        })
+        .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // Imagens/manifest/ícones: cache primeiro, atualiza em segundo plano
+  e.respondWith(
+    caches.match(req).then((emCache) => {
+      const rede = fetch(req).then((res) => {
+        if (res.ok) { const copia = res.clone(); caches.open(VERSAO).then((c) => c.put(req, copia)); }
+        return res;
+      }).catch(() => emCache);
+      return emCache || rede;
+    })
   );
 });
